@@ -10,6 +10,7 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Replit Auth and App Storage are configured for authenticated, private drawing uploads.
 
 ## Stack
 
@@ -24,6 +25,8 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 
 - `artifacts/puller-library` — React/Vite app with the dashboard, catalogue, puller detail and version history, vendor/customer directory, and comparison routes.
 - `artifacts/api-server/src/routes/puller-library.ts` — API operations for summaries, vendors, customers, pullers, versions, and comparison.
+- `artifacts/api-server/src/routes/storage.ts` — authenticated presigned uploads and private file reads.
+- `lib/db/src/schema/auth.ts` — Replit Auth sessions and user records.
 - `lib/api-spec/openapi.yaml` — API contract source of truth.
 - `lib/db/src/schema/puller-library.ts` — relational schema for vendors, customers, pullers, and immutable design versions.
 - `artifacts/puller-library/public/seed-images` — supplied reference images used by the starter catalogue.
@@ -32,6 +35,8 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 
 - The web app calls the shared Express API through generated React Query hooks.
 - PostgreSQL stores normalized vendor/customer/puller/version relationships; image URLs are metadata, not database blobs.
+- Replit Auth protects catalogue and private media endpoints. Uploaded drawings and models live in private App Storage; the database stores object paths and file names.
+- Puller records store configurable dimensions in mm, cm, or inches and support 2D image/PDF and 3D GLB/STL previews.
 - Design versions are append-only and receive their version number on the server.
 - The initial catalogue includes sample records and the supplied reference images so the app is useful on first load.
 
@@ -42,6 +47,8 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 - Vendor and customer directory with create flows.
 - Side-by-side comparison of puller designs.
 - Version history and new version creation without overwriting earlier records.
+- Per-puller 2D/3D media, dimensional configuration, and interactive 3D model preview.
+- Sign-in gate for the library and private uploads.
 
 ## User preferences
 
@@ -49,7 +56,7 @@ _No explicit preferences recorded._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Replit Auth currently verifies sign-in only; the catalogue and private files are shared with every account that can sign in. Add an approved-team access rule before storing confidential designs.
 
 ## Pointers
 

@@ -5,6 +5,7 @@
  * Puller Design Library API
  * OpenAPI spec version: 0.1.0
  */
+import type { PullerDimensionUnit } from './pullerDimensionUnit';
 import type { PullerStatus } from './pullerStatus';
 
 export interface Puller {
@@ -68,6 +69,29 @@ export interface Puller {
   imageUrl?: string | null;
   /** @nullable */
   imageLabel?: string | null;
+  /** @nullable */
+  drawing2dUrl?: string | null;
+  /** @nullable */
+  drawing2dName?: string | null;
+  /** @nullable */
+  drawing3dUrl?: string | null;
+  /** @nullable */
+  drawing3dName?: string | null;
+  dimensionUnit?: PullerDimensionUnit;
+  /** @nullable */
+  overallLength?: number | null;
+  /** @nullable */
+  overallWidth?: number | null;
+  /** @nullable */
+  overallHeight?: number | null;
+  /** @nullable */
+  thickness?: number | null;
+  /** @nullable */
+  holeDiameter?: number | null;
+  /** @nullable */
+  holeSpacing?: number | null;
+  /** @nullable */
+  weight?: number | null;
   versionCount?: number;
   favorite?: boolean;
   createdAt?: Date;

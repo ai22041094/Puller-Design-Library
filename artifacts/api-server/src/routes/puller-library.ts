@@ -40,6 +40,9 @@ import {
   PullerVersionInput,
   UpdatePullerBody,
   UpdatePullerParams,
+  UpdatePullerMediaBody,
+  UpdatePullerMediaParams,
+  UpdatePullerMediaResponse,
   UpdatePullerResponse,
   UpdateVendorBody,
   UpdateVendorParams,
@@ -54,6 +57,14 @@ import {
 } from "@workspace/db";
 
 const router: IRouter = Router();
+
+router.use((req, res, next) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  next();
+});
 
 const pullerColumns = getTableColumns(pullersTable);
 
@@ -378,6 +389,30 @@ router.patch("/pullers/:pullerId", async (req, res): Promise<void> => {
   }
   const row = (await getPullerRows({ q: puller.uniqueIdentifier })).find((item) => item.id === puller.id);
   res.json(UpdatePullerResponse.parse(await toPuller(row!)));
+});
+
+router.patch("/pullers/:pullerId/media", async (req, res): Promise<void> => {
+  const params = UpdatePullerMediaParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = UpdatePullerMediaBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [updated] = await db
+    .update(pullersTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(eq(pullersTable.id, params.data.pullerId))
+    .returning({ id: pullersTable.id });
+  if (!updated) {
+    res.status(404).json({ error: "Puller not found" });
+    return;
+  }
+  const row = (await getPullerRows()).find((item) => item.id === updated.id);
+  res.json(UpdatePullerMediaResponse.parse(await toPuller(row!)));
 });
 
 router.get("/pullers/:pullerId/versions", async (req, res): Promise<void> => {

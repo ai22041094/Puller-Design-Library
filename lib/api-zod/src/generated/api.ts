@@ -71,6 +71,18 @@ export const GetDashboardResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -111,6 +123,18 @@ export const GetDashboardResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -368,6 +392,18 @@ export const ListPullersResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -385,6 +421,22 @@ export const ListPullersResponse = zod.object({
 
 
 export const createPullerBodyStatusDefault = `draft`;
+export const createPullerBodyDimensionUnitDefault = `mm`;
+export const createPullerBodyOverallLengthMin = 0;
+
+export const createPullerBodyOverallWidthMin = 0;
+
+export const createPullerBodyOverallHeightMin = 0;
+
+export const createPullerBodyThicknessMin = 0;
+
+export const createPullerBodyHoleDiameterMin = 0;
+
+export const createPullerBodyHoleSpacingMin = 0;
+
+export const createPullerBodyWeightMin = 0;
+
+
 
 export const CreatePullerBody = zod.object({
   "uniqueIdentifier": zod.string().min(1),
@@ -417,7 +469,19 @@ export const CreatePullerBody = zod.object({
   "requirementNumber": zod.string().optional(),
   "remarks": zod.string().optional(),
   "imageUrl": zod.string().optional(),
-  "imageLabel": zod.string().optional()
+  "imageLabel": zod.string().optional(),
+  "drawing2dUrl": zod.string().optional(),
+  "drawing2dName": zod.string().optional(),
+  "drawing3dUrl": zod.string().optional(),
+  "drawing3dName": zod.string().optional(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).default(createPullerBodyDimensionUnitDefault),
+  "overallLength": zod.number().min(createPullerBodyOverallLengthMin).optional(),
+  "overallWidth": zod.number().min(createPullerBodyOverallWidthMin).optional(),
+  "overallHeight": zod.number().min(createPullerBodyOverallHeightMin).optional(),
+  "thickness": zod.number().min(createPullerBodyThicknessMin).optional(),
+  "holeDiameter": zod.number().min(createPullerBodyHoleDiameterMin).optional(),
+  "holeSpacing": zod.number().min(createPullerBodyHoleSpacingMin).optional(),
+  "weight": zod.number().min(createPullerBodyWeightMin).optional()
 })
 
 export const CreatePullerResponse = zod.object({
@@ -455,6 +519,18 @@ export const CreatePullerResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -504,6 +580,18 @@ export const GetPullerResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -521,6 +609,22 @@ export const UpdatePullerParams = zod.object({
 
 
 export const updatePullerBodyOneStatusDefault = `draft`;
+export const updatePullerBodyOneDimensionUnitDefault = `mm`;
+export const updatePullerBodyOneOverallLengthMin = 0;
+
+export const updatePullerBodyOneOverallWidthMin = 0;
+
+export const updatePullerBodyOneOverallHeightMin = 0;
+
+export const updatePullerBodyOneThicknessMin = 0;
+
+export const updatePullerBodyOneHoleDiameterMin = 0;
+
+export const updatePullerBodyOneHoleSpacingMin = 0;
+
+export const updatePullerBodyOneWeightMin = 0;
+
+
 
 export const UpdatePullerBody = zod.object({
   "uniqueIdentifier": zod.string().min(1),
@@ -553,7 +657,19 @@ export const UpdatePullerBody = zod.object({
   "requirementNumber": zod.string().optional(),
   "remarks": zod.string().optional(),
   "imageUrl": zod.string().optional(),
-  "imageLabel": zod.string().optional()
+  "imageLabel": zod.string().optional(),
+  "drawing2dUrl": zod.string().optional(),
+  "drawing2dName": zod.string().optional(),
+  "drawing3dUrl": zod.string().optional(),
+  "drawing3dName": zod.string().optional(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).default(updatePullerBodyOneDimensionUnitDefault),
+  "overallLength": zod.number().min(updatePullerBodyOneOverallLengthMin).optional(),
+  "overallWidth": zod.number().min(updatePullerBodyOneOverallWidthMin).optional(),
+  "overallHeight": zod.number().min(updatePullerBodyOneOverallHeightMin).optional(),
+  "thickness": zod.number().min(updatePullerBodyOneThicknessMin).optional(),
+  "holeDiameter": zod.number().min(updatePullerBodyOneHoleDiameterMin).optional(),
+  "holeSpacing": zod.number().min(updatePullerBodyOneHoleSpacingMin).optional(),
+  "weight": zod.number().min(updatePullerBodyOneWeightMin).optional()
 })
 
 export const UpdatePullerResponse = zod.object({
@@ -591,6 +707,86 @@ export const UpdatePullerResponse = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
+  "versionCount": zod.number().int().optional(),
+  "favorite": zod.boolean().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update uploaded drawing references for a puller
+ */
+export const UpdatePullerMediaParams = zod.object({
+  "pullerId": zod.coerce.number().int()
+})
+
+export const UpdatePullerMediaBody = zod.object({
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish()
+})
+
+export const UpdatePullerMediaResponse = zod.object({
+  "id": zod.number().int(),
+  "uniqueIdentifier": zod.string(),
+  "partName": zod.string(),
+  "waveCode": zod.string().nullish(),
+  "developmentNumber": zod.string().nullish(),
+  "mouldOrderNumber": zod.string().nullish(),
+  "size": zod.string().nullable(),
+  "compatibilityType": zod.string().nullish(),
+  "material": zod.string().nullable(),
+  "assemblyType": zod.string().nullish(),
+  "logoMark": zod.string().nullish(),
+  "color": zod.string().nullish(),
+  "finish": zod.string().nullish(),
+  "specialProcess": zod.string().nullish(),
+  "torqueCpsc": zod.string().nullish(),
+  "pcsPerShot": zod.string().nullish(),
+  "inHouseOutsource": zod.string().nullish(),
+  "capacity": zod.string().nullish(),
+  "cost": zod.string().nullish(),
+  "needleDetector": zod.string().nullish(),
+  "vendorId": zod.number().int(),
+  "vendorName": zod.string(),
+  "customerId": zod.number().int(),
+  "customerName": zod.string(),
+  "buyerName": zod.string().nullish(),
+  "depotCode": zod.string().nullish(),
+  "requestedBy": zod.string().nullish(),
+  "marketType": zod.string().nullish(),
+  "status": zod.enum(['draft', 'development', 'review', 'approved', 'mould', 'production', 'closed']),
+  "requirementName": zod.string().nullish(),
+  "requirementNumber": zod.string().nullish(),
+  "remarks": zod.string().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
@@ -700,11 +896,151 @@ export const ComparePullersResponseItem = zod.object({
   "remarks": zod.string().nullish(),
   "imageUrl": zod.string().nullish(),
   "imageLabel": zod.string().nullish(),
+  "drawing2dUrl": zod.string().nullish(),
+  "drawing2dName": zod.string().nullish(),
+  "drawing3dUrl": zod.string().nullish(),
+  "drawing3dName": zod.string().nullish(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().nullish(),
+  "overallWidth": zod.number().nullish(),
+  "overallHeight": zod.number().nullish(),
+  "thickness": zod.number().nullish(),
+  "holeDiameter": zod.number().nullish(),
+  "holeSpacing": zod.number().nullish(),
+  "weight": zod.number().nullish(),
   "versionCount": zod.number().int().optional(),
   "favorite": zod.boolean().optional(),
   "createdAt": zod.coerce.date().optional(),
   "updatedAt": zod.coerce.date()
 })
 export const ComparePullersResponse = zod.array(ComparePullersResponseItem)
+
+
+/**
+ * @summary Request a presigned URL for an authenticated upload
+ */
+
+export const requestUploadUrlBodySizeMax = 52428800;
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().int().min(1).max(requestUploadUrlBodySizeMax),
+  "contentType": zod.string().min(1)
+})
+
+
+export const requestUploadUrlResponseMetadataSizeMax = 52428800;
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().int().min(1).max(requestUploadUrlResponseMetadataSizeMax),
+  "contentType": zod.string().min(1)
+}).optional()
+})
+
+
+/**
+ * @summary Serve a private uploaded object to authenticated users
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
+})
+
+export const GetStorageObjectResponse = zod.unknown()
+
+
+/**
+ * @summary Serve a supplied public reference image
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string()
+})
+
+export const GetPublicObjectResponse = zod.unknown()
+
+
+/**
+ * @summary Get the current sign-in state
+ */
+export const GetCurrentAuthUserHeader = zod.object({
+  "Authorization": zod.string().optional()
+})
+
+export const GetCurrentAuthUserResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start browser sign-in
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+export const BeginBrowserLoginResponse = zod.void()
+
+
+/**
+ * @summary Complete browser sign-in
+ */
+export const HandleBrowserLoginCallbackResponse = zod.void()
+
+
+/**
+ * @summary End browser session
+ */
+export const LogoutBrowserSessionQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+export const LogoutBrowserSessionResponse = zod.void()
+
+
+/**
+ * @summary Exchange a mobile sign-in code
+ */
+
+
+
+
+
+
+
+export const ExchangeMobileAuthorizationCodeBody = zod.object({
+  "code": zod.string().min(1),
+  "code_verifier": zod.string().min(1),
+  "redirect_uri": zod.string().url().min(1),
+  "state": zod.string().min(1),
+  "nonce": zod.string().min(1).optional()
+})
+
+export const ExchangeMobileAuthorizationCodeResponse = zod.object({
+  "token": zod.string()
+})
+
+
+export const LogoutMobileSessionHeader = zod.object({
+  "Authorization": zod.string().optional()
+})
+
+export const LogoutMobileSessionResponse = zod.object({
+  "success": zod.literal(true)
+})
 
 

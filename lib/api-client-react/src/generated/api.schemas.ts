@@ -13,6 +13,66 @@ export interface Error {
   error: string;
 }
 
+export interface ErrorEnvelope {
+  error: string;
+}
+
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
+}
+
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
+
+export interface MobileTokenExchangeRequest {
+  /** @minLength 1 */
+  code: string;
+  /** @minLength 1 */
+  code_verifier: string;
+  /** @minLength 1 */
+  redirect_uri: string;
+  /** @minLength 1 */
+  state: string;
+  /** @minLength 1 */
+  nonce?: string;
+}
+
+export interface MobileTokenExchangeSuccess {
+  token: string;
+}
+
+export const LogoutSuccessValue = {
+  success: true,
+} as const;
+export type LogoutSuccess = typeof LogoutSuccessValue;
+
+export interface UploadRequest {
+  /** @minLength 1 */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 52428800
+     */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrl {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadRequest;
+}
+
 export type VendorStatus = typeof VendorStatus[keyof typeof VendorStatus];
 
 
@@ -135,6 +195,15 @@ export const PullerStatus = {
   closed: 'closed',
 } as const;
 
+export type PullerDimensionUnit = typeof PullerDimensionUnit[keyof typeof PullerDimensionUnit];
+
+
+export const PullerDimensionUnit = {
+  mm: 'mm',
+  cm: 'cm',
+  in: 'in',
+} as const;
+
 export interface Puller {
   id: number;
   uniqueIdentifier: string;
@@ -196,6 +265,29 @@ export interface Puller {
   imageUrl?: string | null;
   /** @nullable */
   imageLabel?: string | null;
+  /** @nullable */
+  drawing2dUrl?: string | null;
+  /** @nullable */
+  drawing2dName?: string | null;
+  /** @nullable */
+  drawing3dUrl?: string | null;
+  /** @nullable */
+  drawing3dName?: string | null;
+  dimensionUnit?: PullerDimensionUnit;
+  /** @nullable */
+  overallLength?: number | null;
+  /** @nullable */
+  overallWidth?: number | null;
+  /** @nullable */
+  overallHeight?: number | null;
+  /** @nullable */
+  thickness?: number | null;
+  /** @nullable */
+  holeDiameter?: number | null;
+  /** @nullable */
+  holeSpacing?: number | null;
+  /** @nullable */
+  weight?: number | null;
   versionCount?: number;
   favorite?: boolean;
   createdAt?: string;
@@ -213,6 +305,15 @@ export const PullerInputStatus = {
   mould: 'mould',
   production: 'production',
   closed: 'closed',
+} as const;
+
+export type PullerInputDimensionUnit = typeof PullerInputDimensionUnit[keyof typeof PullerInputDimensionUnit];
+
+
+export const PullerInputDimensionUnit = {
+  mm: 'mm',
+  cm: 'cm',
+  in: 'in',
 } as const;
 
 export interface PullerInput {
@@ -249,6 +350,36 @@ export interface PullerInput {
   remarks?: string;
   imageUrl?: string;
   imageLabel?: string;
+  drawing2dUrl?: string;
+  drawing2dName?: string;
+  drawing3dUrl?: string;
+  drawing3dName?: string;
+  dimensionUnit?: PullerInputDimensionUnit;
+  /** @minimum 0 */
+  overallLength?: number;
+  /** @minimum 0 */
+  overallWidth?: number;
+  /** @minimum 0 */
+  overallHeight?: number;
+  /** @minimum 0 */
+  thickness?: number;
+  /** @minimum 0 */
+  holeDiameter?: number;
+  /** @minimum 0 */
+  holeSpacing?: number;
+  /** @minimum 0 */
+  weight?: number;
+}
+
+export interface PullerMediaUpdate {
+  /** @nullable */
+  drawing2dUrl?: string | null;
+  /** @nullable */
+  drawing2dName?: string | null;
+  /** @nullable */
+  drawing3dUrl?: string | null;
+  /** @nullable */
+  drawing3dName?: string | null;
 }
 
 export type PullerUpdate = PullerInput;
@@ -342,6 +473,8 @@ export interface DashboardSummary {
  */
 export type NotFoundResponse = Error;
 
+export type AuthorizationSessionHeaderParameter = string;
+
 export type ListCustomersParams = {
 vendorId?: number;
 };
@@ -378,4 +511,12 @@ export const ListPullersSort = {
   identifier: 'identifier',
   vendor: 'vendor',
 } as const;
+
+export type BeginBrowserLoginParams = {
+returnTo?: string;
+};
+
+export type LogoutBrowserSessionParams = {
+returnTo?: string;
+};
 

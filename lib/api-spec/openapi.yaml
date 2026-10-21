@@ -18,6 +18,10 @@ tags:
     description: Customer management
   - name: pullers
     description: Puller catalogue and design records
+  - name: Storage
+    description: Private upload and object-serving endpoints.
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
 paths:
   /healthz:
     get:
@@ -269,6 +273,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Puller"
+  /pullers/{pullerId}/media:
+    patch:
+      operationId: updatePullerMedia
+      tags: [pullers]
+      summary: Update uploaded drawing references for a puller
+      parameters:
+        - $ref: "#/components/parameters/PullerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerMediaUpdate"
+      responses:
+        "200":
+          description: Updated media references
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Puller"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /pullers/{pullerId}/versions:
     get:
       operationId: listPullerVersions
@@ -324,6 +350,186 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Puller"
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for an authenticated upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrl"
+        "400":
+          description: Missing or invalid file metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve a private uploaded object to authenticated users
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content streamed with its stored content type.
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [Storage]
+      operationId: getPublicObject
+      summary: Serve a supplied public reference image
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public object content.
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the current sign-in state
+      parameters:
+        - $ref: "#/components/parameters/AuthorizationSessionHeader"
+        - $ref: "#/components/parameters/SessionCookie"
+      responses:
+        "200":
+          description: Current authentication state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserEnvelope"
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start browser sign-in
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to the identity provider.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete browser sign-in
+      responses:
+        "302":
+          description: Redirect to the application after sign-in.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: End browser session
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to the identity provider logout.
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile sign-in code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileTokenExchangeRequest"
+      responses:
+        "200":
+          description: Session token created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MobileTokenExchangeSuccess"
+        "400":
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      parameters:
+        - $ref: "#/components/parameters/AuthorizationSessionHeader"
+      responses:
+        "200":
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutSuccess"
 components:
   parameters:
     VendorId:
@@ -338,6 +544,18 @@ components:
       required: true
       schema:
         type: integer
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      schema:
+        type: string
   responses:
     NotFound:
       description: Record not found
@@ -359,6 +577,63 @@ components:
         error:
           type: string
       required: [error]
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id: { type: string }
+        email: { type: [string, "null"], format: email }
+        firstName: { type: [string, "null"] }
+        lastName: { type: [string, "null"] }
+        profileImageUrl: { type: [string, "null"] }
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code: { type: string, minLength: 1 }
+        code_verifier: { type: string, minLength: 1 }
+        redirect_uri: { type: string, minLength: 1, format: uri }
+        state: { type: string, minLength: 1 }
+        nonce: { type: string, minLength: 1 }
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+    UploadRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1 }
+        size: { type: integer, minimum: 1, maximum: 52428800 }
+        contentType: { type: string, minLength: 1 }
+    UploadUrl:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+        metadata:
+          $ref: "#/components/schemas/UploadRequest"
     Vendor:
       type: object
       required: [id, name, code, status, pullerCount, customerCount]
@@ -474,6 +749,18 @@ components:
         remarks: { type: ["string", "null"] }
         imageUrl: { type: ["string", "null"] }
         imageLabel: { type: ["string", "null"] }
+        drawing2dUrl: { type: ["string", "null"] }
+        drawing2dName: { type: ["string", "null"] }
+        drawing3dUrl: { type: ["string", "null"] }
+        drawing3dName: { type: ["string", "null"] }
+        dimensionUnit: { type: string, enum: [mm, cm, in] }
+        overallLength: { type: ["number", "null"] }
+        overallWidth: { type: ["number", "null"] }
+        overallHeight: { type: ["number", "null"] }
+        thickness: { type: ["number", "null"] }
+        holeDiameter: { type: ["number", "null"] }
+        holeSpacing: { type: ["number", "null"] }
+        weight: { type: ["number", "null"] }
         versionCount: { type: integer }
         favorite: { type: boolean }
         createdAt: { type: string, format: date-time }
@@ -513,6 +800,25 @@ components:
         remarks: { type: string }
         imageUrl: { type: string }
         imageLabel: { type: string }
+        drawing2dUrl: { type: string }
+        drawing2dName: { type: string }
+        drawing3dUrl: { type: string }
+        drawing3dName: { type: string }
+        dimensionUnit: { type: string, enum: [mm, cm, in], default: mm }
+        overallLength: { type: number, minimum: 0 }
+        overallWidth: { type: number, minimum: 0 }
+        overallHeight: { type: number, minimum: 0 }
+        thickness: { type: number, minimum: 0 }
+        holeDiameter: { type: number, minimum: 0 }
+        holeSpacing: { type: number, minimum: 0 }
+        weight: { type: number, minimum: 0 }
+    PullerMediaUpdate:
+      type: object
+      properties:
+        drawing2dUrl: { type: ["string", "null"] }
+        drawing2dName: { type: ["string", "null"] }
+        drawing3dUrl: { type: ["string", "null"] }
+        drawing3dName: { type: ["string", "null"] }
     PullerUpdate:
       allOf:
         - $ref: "#/components/schemas/PullerInput"
