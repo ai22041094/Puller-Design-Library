@@ -1,6 +1,6 @@
-# [Project name]
+# Puller Design Library
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An enterprise catalogue for R&D and Sales teams to find, compare, and manage multi-vendor puller designs, suppliers, customers, and design history.
 
 ## Run & Operate
 
@@ -22,19 +22,30 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/puller-library` — React/Vite app with the dashboard, catalogue, puller detail and version history, vendor/customer directory, and comparison routes.
+- `artifacts/api-server/src/routes/puller-library.ts` — API operations for summaries, vendors, customers, pullers, versions, and comparison.
+- `lib/api-spec/openapi.yaml` — API contract source of truth.
+- `lib/db/src/schema/puller-library.ts` — relational schema for vendors, customers, pullers, and immutable design versions.
+- `artifacts/puller-library/public/seed-images` — supplied reference images used by the starter catalogue.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The web app calls the shared Express API through generated React Query hooks.
+- PostgreSQL stores normalized vendor/customer/puller/version relationships; image URLs are metadata, not database blobs.
+- Design versions are append-only and receive their version number on the server.
+- The initial catalogue includes sample records and the supplied reference images so the app is useful on first load.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard with design status metrics and vendor coverage.
+- Searchable, filterable catalogue with puller technical detail pages.
+- Vendor and customer directory with create flows.
+- Side-by-side comparison of puller designs.
+- Version history and new version creation without overwriting earlier records.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_No explicit preferences recorded._
 
 ## Gotchas
 

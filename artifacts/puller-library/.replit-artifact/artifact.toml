@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Puller Design Library"
+description = "An enterprise catalogue for R&D and Sales teams to search, compare, and manage multi-vendor puller designs, vendors, customers, and immutable design versions."
+version = "1.0.0"
+id = "artifacts/puller-library"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19468
+
+[services.development]
+run = "pnpm --filter @workspace/puller-library run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/puller-library", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/puller-library/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19468"
+BASE_PATH = "/"

@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Puller Design Library API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard summaries
+  - name: vendors
+    description: Vendor management
+  - name: customers
+    description: Customer management
+  - name: pullers
+    description: Puller catalogue and design records
 paths:
   /healthz:
     get:
@@ -24,7 +32,319 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard overview
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /vendors:
+    get:
+      operationId: listVendors
+      tags: [vendors]
+      summary: List vendors
+      responses:
+        "200":
+          description: Vendor list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+    post:
+      operationId: createVendor
+      tags: [vendors]
+      summary: Create a vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorInput"
+      responses:
+        "201":
+          description: Created vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+  /vendors/{vendorId}:
+    get:
+      operationId: getVendor
+      tags: [vendors]
+      summary: Get a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateVendor
+      tags: [vendors]
+      summary: Update a vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorUpdate"
+      responses:
+        "200":
+          description: Updated vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List customers
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+  /pullers:
+    get:
+      operationId: listPullers
+      tags: [pullers]
+      summary: Search and filter the puller catalogue
+      parameters:
+        - name: q
+          in: query
+          description: Search across identifier, part name, vendor, customer, wave and development numbers
+          schema:
+            type: string
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: string
+        - name: material
+          in: query
+          schema:
+            type: string
+        - name: finish
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: market
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 24
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [recent, identifier, vendor]
+            default: recent
+      responses:
+        "200":
+          description: Puller search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullerListResponse"
+    post:
+      operationId: createPuller
+      tags: [pullers]
+      summary: Create a puller record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerInput"
+      responses:
+        "201":
+          description: Created puller
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Puller"
+        "409":
+          description: Puller identifier already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /pullers/{pullerId}:
+    get:
+      operationId: getPuller
+      tags: [pullers]
+      summary: Get puller details
+      parameters:
+        - $ref: "#/components/parameters/PullerId"
+      responses:
+        "200":
+          description: Puller detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Puller"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updatePuller
+      tags: [pullers]
+      summary: Update a puller record
+      parameters:
+        - $ref: "#/components/parameters/PullerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerUpdate"
+      responses:
+        "200":
+          description: Updated puller
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Puller"
+  /pullers/{pullerId}/versions:
+    get:
+      operationId: listPullerVersions
+      tags: [pullers]
+      summary: List design versions
+      parameters:
+        - $ref: "#/components/parameters/PullerId"
+      responses:
+        "200":
+          description: Version history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PullerVersion"
+    post:
+      operationId: createPullerVersion
+      tags: [pullers]
+      summary: Create a new design version
+      parameters:
+        - $ref: "#/components/parameters/PullerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerVersionInput"
+      responses:
+        "201":
+          description: Created version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullerVersion"
+  /pullers/compare:
+    post:
+      operationId: comparePullers
+      tags: [pullers]
+      summary: Compare selected pullers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerCompareInput"
+      responses:
+        "200":
+          description: Pullers with comparison fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Puller"
 components:
+  parameters:
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: integer
+    PullerId:
+      name: pullerId
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    NotFound:
+      description: Record not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +353,246 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    Vendor:
+      type: object
+      required: [id, name, code, status, pullerCount, customerCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        code: { type: string }
+        logoUrl: { type: ["string", "null"] }
+        contactPerson: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        phone: { type: ["string", "null"] }
+        country: { type: ["string", "null"] }
+        status: { type: string, enum: [active, inactive] }
+        remarks: { type: ["string", "null"] }
+        pullerCount: { type: integer }
+        customerCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    VendorInput:
+      type: object
+      required: [name, code]
+      properties:
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 1 }
+        logoUrl: { type: string }
+        contactPerson: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        country: { type: string }
+        status: { type: string, enum: [active, inactive], default: active }
+        remarks: { type: string }
+    VendorUpdate:
+      allOf:
+        - $ref: "#/components/schemas/VendorInput"
+    Customer:
+      type: object
+      required: [id, vendorId, vendorName, name, code, status, pullerCount]
+      properties:
+        id: { type: integer }
+        vendorId: { type: integer }
+        vendorName: { type: string }
+        name: { type: string }
+        code: { type: string }
+        logoUrl: { type: ["string", "null"] }
+        depotCode: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        marketType: { type: ["string", "null"] }
+        contactPerson: { type: ["string", "null"] }
+        status: { type: string, enum: [active, inactive] }
+        remarks: { type: ["string", "null"] }
+        pullerCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+    CustomerInput:
+      type: object
+      required: [vendorId, name, code]
+      properties:
+        vendorId: { type: integer }
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 1 }
+        logoUrl: { type: string }
+        depotCode: { type: string }
+        location: { type: string }
+        marketType: { type: string }
+        contactPerson: { type: string }
+        status: { type: string, enum: [active, inactive], default: active }
+        remarks: { type: string }
+    Puller:
+      type: object
+      required:
+        - id
+        - uniqueIdentifier
+        - partName
+        - vendorId
+        - vendorName
+        - customerId
+        - customerName
+        - size
+        - material
+        - status
+        - updatedAt
+      properties:
+        id: { type: integer }
+        uniqueIdentifier: { type: string }
+        partName: { type: string }
+        waveCode: { type: ["string", "null"] }
+        developmentNumber: { type: ["string", "null"] }
+        mouldOrderNumber: { type: ["string", "null"] }
+        size: { type: ["string", "null"] }
+        compatibilityType: { type: ["string", "null"] }
+        material: { type: ["string", "null"] }
+        assemblyType: { type: ["string", "null"] }
+        logoMark: { type: ["string", "null"] }
+        color: { type: ["string", "null"] }
+        finish: { type: ["string", "null"] }
+        specialProcess: { type: ["string", "null"] }
+        torqueCpsc: { type: ["string", "null"] }
+        pcsPerShot: { type: ["string", "null"] }
+        inHouseOutsource: { type: ["string", "null"] }
+        capacity: { type: ["string", "null"] }
+        cost: { type: ["string", "null"] }
+        needleDetector: { type: ["string", "null"] }
+        vendorId: { type: integer }
+        vendorName: { type: string }
+        customerId: { type: integer }
+        customerName: { type: string }
+        buyerName: { type: ["string", "null"] }
+        depotCode: { type: ["string", "null"] }
+        requestedBy: { type: ["string", "null"] }
+        marketType: { type: ["string", "null"] }
+        status: { type: string, enum: [draft, development, review, approved, mould, production, closed] }
+        requirementName: { type: ["string", "null"] }
+        requirementNumber: { type: ["string", "null"] }
+        remarks: { type: ["string", "null"] }
+        imageUrl: { type: ["string", "null"] }
+        imageLabel: { type: ["string", "null"] }
+        versionCount: { type: integer }
+        favorite: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PullerInput:
+      type: object
+      required: [uniqueIdentifier, partName, vendorId, customerId]
+      properties:
+        uniqueIdentifier: { type: string, minLength: 1 }
+        partName: { type: string, minLength: 1 }
+        waveCode: { type: string }
+        developmentNumber: { type: string }
+        mouldOrderNumber: { type: string }
+        size: { type: string }
+        compatibilityType: { type: string }
+        material: { type: string }
+        assemblyType: { type: string }
+        logoMark: { type: string }
+        color: { type: string }
+        finish: { type: string }
+        specialProcess: { type: string }
+        torqueCpsc: { type: string }
+        pcsPerShot: { type: string }
+        inHouseOutsource: { type: string }
+        capacity: { type: string }
+        cost: { type: string }
+        needleDetector: { type: string }
+        vendorId: { type: integer }
+        customerId: { type: integer }
+        buyerName: { type: string }
+        depotCode: { type: string }
+        requestedBy: { type: string }
+        marketType: { type: string }
+        status: { type: string, enum: [draft, development, review, approved, mould, production, closed], default: draft }
+        requirementName: { type: string }
+        requirementNumber: { type: string }
+        remarks: { type: string }
+        imageUrl: { type: string }
+        imageLabel: { type: string }
+    PullerUpdate:
+      allOf:
+        - $ref: "#/components/schemas/PullerInput"
+    PullerListResponse:
+      type: object
+      required: [items, total, page, limit]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Puller"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+    PullerVersion:
+      type: object
+      required: [id, pullerId, versionNumber, changesDescription, approvalStatus, createdBy, createdAt]
+      properties:
+        id: { type: integer }
+        pullerId: { type: integer }
+        versionNumber: { type: integer }
+        designImageUrl: { type: ["string", "null"] }
+        drawing2dUrl: { type: ["string", "null"] }
+        drawing3dUrl: { type: ["string", "null"] }
+        changesDescription: { type: string }
+        approvalStatus: { type: string, enum: [draft, submitted, approved, rejected] }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    PullerVersionInput:
+      type: object
+      required: [changesDescription]
+      properties:
+        designImageUrl: { type: string }
+        drawing2dUrl: { type: string }
+        drawing3dUrl: { type: string }
+        changesDescription: { type: string }
+        approvalStatus: { type: string, enum: [draft, submitted, approved, rejected], default: draft }
+        createdBy: { type: string, default: Current user }
+    PullerCompareInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: { type: integer }
+    DashboardSummary:
+      type: object
+      required: [metrics, vendorCounts, recentPullers, recentlyUpdated]
+      properties:
+        metrics:
+          type: object
+          required: [totalVendors, totalCustomers, totalPullers, activeDesigns, underDevelopment, awaitingApproval, approvedDesigns, mouldsInProgress]
+          properties:
+            totalVendors: { type: integer }
+            totalCustomers: { type: integer }
+            totalPullers: { type: integer }
+            activeDesigns: { type: integer }
+            underDevelopment: { type: integer }
+            awaitingApproval: { type: integer }
+            approvedDesigns: { type: integer }
+            mouldsInProgress: { type: integer }
+        vendorCounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorCount"
+        recentPullers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Puller"
+        recentlyUpdated:
+          type: array
+          items:
+            $ref: "#/components/schemas/Puller"
+    VendorCount:
+      type: object
+      required: [vendorId, vendorName, count]
+      properties:
+        vendorId: { type: integer }
+        vendorName: { type: string }
+        count: { type: integer }
 
