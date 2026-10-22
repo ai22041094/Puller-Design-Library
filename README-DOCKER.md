@@ -27,7 +27,8 @@ docker info
 openssl version
 ```
 
-Point your domain's DNS at the server. Allow inbound ports **80 and 443**.
+Point your domain's DNS at the server. Allow inbound ports **80 and 443** by
+default, or the custom `HTTP_PORT` and `HTTPS_PORT` configured in `.env`.
 Do not publicly expose PostgreSQL or the API. Node, pnpm, npm, and Yarn do not
 need to be installed on the server; builds run inside Docker.
 
@@ -106,7 +107,9 @@ Git history, host dependencies, and generated output are excluded from builds.
 | Variable | Purpose |
 | --- | --- |
 | `DOMAIN` | Public hostname, without scheme, port, or path. |
-| `APP_ORIGIN` | Exactly `https://DOMAIN`, without a trailing slash. Used for cross-origin write protection. |
+| `HTTP_PORT` | Published Nginx HTTP port. Defaults to `80`. |
+| `HTTPS_PORT` | Published Nginx HTTPS port. Defaults to `443`. |
+| `APP_ORIGIN` | `https://DOMAIN`, adding `:HTTPS_PORT` when it is not `443`, without a trailing slash. Used for redirects and cross-origin write protection. |
 | `POSTGRES_DB` / `POSTGRES_USER` | Database and role names. Use lowercase letters, digits, underscores. |
 | `POSTGRES_PASSWORD` | Random URL-safe database password, at least 32 characters. The setup script generates it. |
 | `LEGACY_PRIVATE_OBJECT_DIR` | Optional former bucket/private prefix, used only to recognize legacy references during import cleanup. |
@@ -114,6 +117,26 @@ Git history, host dependencies, and generated output are excluded from builds.
 Compose sets `NODE_ENV=production`, `PORT=8080`, `UPLOAD_DIR=/data`, and builds
 `DATABASE_URL` from the database configuration. API and database ports are internal.
 The browser always calls `/api` on the same HTTPS origin.
+
+### Custom Nginx ports
+
+The root `.env.example` includes sample settings. To serve HTTP on 8080 and
+HTTPS on 8443, set these values in your server's `.env`:
+
+```dotenv
+DOMAIN=pullers.your-company.com
+HTTP_PORT=8080
+HTTPS_PORT=8443
+APP_ORIGIN=https://pullers.your-company.com:8443
+```
+
+Then run `bash setup.sh`. Visit `https://pullers.your-company.com:8443`.
+HTTP requests on port 8080 redirect to that HTTPS origin, including port 8443.
+For HTTPS port 443, omit the port from APP_ORIGIN. Setup rejects invalid port
+numbers, identical HTTP/HTTPS ports, and an origin that does not match the
+configured HTTPS port. Existing `.env` files without port settings retain
+80/443 defaults. Internal container ports and health checks remain unchanged.
+If using the health-check command below, include your custom HTTPS port.
 
 ## Accounts and passwords
 

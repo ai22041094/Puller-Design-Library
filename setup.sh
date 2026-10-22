@@ -28,6 +28,8 @@ if [[ ! -f .env ]]; then
   db_password=$(openssl rand -hex 32)
   cat > .env <<EOF
 DOMAIN=$domain
+HTTP_PORT=80
+HTTPS_PORT=443
 APP_ORIGIN=https://$domain
 POSTGRES_DB=puller_library
 POSTGRES_USER=puller
@@ -40,8 +42,18 @@ fi
 chmod 600 .env
 domain=$(config DOMAIN)
 origin=$(config APP_ORIGIN)
+http_port=$(config HTTP_PORT)
+https_port=$(config HTTPS_PORT)
+http_port=${http_port:-80}
+https_port=${https_port:-443}
+for port in "$http_port" "$https_port"; do
+  [[ "$port" =~ ^[1-9][0-9]{0,4}$ && "$port" -le 65535 ]] || die "HTTP_PORT and HTTPS_PORT must be integers from 1 to 65535."
+done
+[[ "$http_port" != "$https_port" ]] || die "HTTP_PORT and HTTPS_PORT must be different."
 [[ "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$ && "$domain" != *example.com* ]] || die "Set a real DOMAIN in .env."
-[[ "$origin" == "https://$domain" ]] || die "APP_ORIGIN must be https://DOMAIN (without a trailing slash)."
+expected_origin="https://$domain"
+if [[ "$https_port" != 443 ]]; then expected_origin+=":$https_port"; fi
+[[ "$origin" == "$expected_origin" ]] || die "APP_ORIGIN must be $expected_origin (without a trailing slash) to match HTTPS_PORT."
 [[ "$(config POSTGRES_PASSWORD)" =~ ^[a-zA-Z0-9_-]{32,}$ && "$(config POSTGRES_PASSWORD)" != replace-* ]] || die "POSTGRES_PASSWORD must be a random URL-safe password, at least 32 characters."
 for key in POSTGRES_USER POSTGRES_DB; do
   [[ "$(config "$key")" =~ ^[a-z_][a-z0-9_]*$ ]] || die "$key must use lowercase letters, digits, and underscores."
