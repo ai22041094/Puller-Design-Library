@@ -159,6 +159,22 @@ export class ObjectStorageService {
     return objectFile;
   }
 
+  async deleteUploadedObject(objectPath: string): Promise<void> {
+    if (!/^\/objects\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(objectPath)) {
+      throw new ObjectNotFoundError();
+    }
+
+    const entityId = objectPath.slice('/objects/'.length);
+    const privateObjectDir = this.getPrivateObjectDir().replace(/\/+$/, '');
+    const { bucketName, objectName } = parseObjectPath(
+      `${privateObjectDir}/${entityId}`,
+    );
+    await objectStorageClient
+      .bucket(bucketName)
+      .file(objectName)
+      .delete({ ignoreNotFound: true });
+  }
+
   normalizeObjectEntityPath(rawPath: string): string {
     if (!rawPath.startsWith('https://storage.googleapis.com/')) {
       return rawPath;

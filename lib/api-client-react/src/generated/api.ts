@@ -45,6 +45,8 @@ import type {
   PullerUpdate,
   PullerVersion,
   PullerVersionInput,
+  UploadCleanupRequest,
+  UploadCleanupResult,
   UploadRequest,
   UploadUrl,
   Vendor,
@@ -918,7 +920,7 @@ export const getBulkImportPullersUrl = () => {
 }
 
 /**
- * Applies only new or identical specification values and rejects conflicting populated fields or media.
+ * Applies the batch atomically. Missing pullers or conflicts with populated specifications or media reject the entire batch without changing any records. Identical existing specification values are accepted without updating the record.
  * @summary Import specifications and private media for existing pullers
  */
 export const bulkImportPullers = async (pullerBulkImportInput: PullerBulkImportInput, options?: Parameters<typeof customFetch>[1]): Promise<PullerBulkImportResult> => {
@@ -1593,6 +1595,94 @@ export const useRequestUploadUrl = <TError = ErrorType<ErrorEnvelope>,
         TContext
       > => {
       return useMutation(getRequestUploadUrlMutationOptions(options));
+    }
+
+export const getCleanupUploadedObjectsUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/cleanup`
+}
+
+/**
+ * @summary Remove unreferenced uploaded files after a rejected import
+ */
+export const cleanupUploadedObjects = async (uploadCleanupRequest: UploadCleanupRequest, options?: Parameters<typeof customFetch>[1]): Promise<UploadCleanupResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<UploadCleanupResult>(getCleanupUploadedObjectsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(uploadCleanupRequest)
+  }
+);}
+
+
+
+
+
+export const getCleanupUploadedObjectsMutationKey = () => ['cleanupUploadedObjects'] as const;
+
+export const getCleanupUploadedObjectsMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupUploadedObjects>>, TError,CleanupUploadedObjectsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cleanupUploadedObjects>>, TError,CleanupUploadedObjectsMutationVariables, TContext> => {
+
+const mutationKey = getCleanupUploadedObjectsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cleanupUploadedObjects>>, CleanupUploadedObjectsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  cleanupUploadedObjects(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CleanupUploadedObjectsMutationResult = NonNullable<Awaited<ReturnType<typeof cleanupUploadedObjects>>>
+    export type CleanupUploadedObjectsMutationBody = BodyType<UploadCleanupRequest>
+    export type CleanupUploadedObjectsMutationError = ErrorType<ErrorEnvelope>
+    export type CleanupUploadedObjectsMutationVariables = {data: BodyType<UploadCleanupRequest>}
+
+    /**
+ * @summary Remove unreferenced uploaded files after a rejected import
+ */
+export const useCleanupUploadedObjects = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupUploadedObjects>>, TError,CleanupUploadedObjectsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cleanupUploadedObjects>>,
+        TError,
+        CleanupUploadedObjectsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCleanupUploadedObjectsMutationOptions(options));
     }
 
 export const getGetStorageObjectUrl = (objectPath: string,) => {

@@ -1,12 +1,20 @@
 import { Readable } from 'stream';
 import path from 'path';
 import {
+  CleanupUploadedObjectsBody,
+  CleanupUploadedObjectsResponse,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from '@workspace/api-zod';
 import { Router, type IRouter, type Request, type Response } from 'express';
+import { inArray, or } from 'drizzle-orm';
 
 import { ObjectPermission } from '../lib/objectAcl';
+import { db, pullerVersionsTable, pullersTable } from '@workspace/db';
+import {
+  cleanupUnreferencedUploadObjects,
+  getUploadReferenceCandidates,
+} from '../lib/uploadCleanup';
 import {
   ObjectNotFoundError,
   ObjectStorageService,
@@ -86,6 +94,79 @@ router.post(
     } catch (error) {
       req.log.error({ err: error }, 'Error generating upload URL');
       res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+  },
+);
+
+router.post(
+  '/storage/uploads/cleanup',
+  async (req: Request, res: Response): Promise<void> => {
+    if (!hasAuthenticatedSession(req)) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const parsed = CleanupUploadedObjectsBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid uploaded object paths.' });
+      return;
+    }
+
+    try {
+      const { objectPaths } = parsed.data;
+      const candidates = getUploadReferenceCandidates(
+        objectPaths,
+        objectStorageService.getPrivateObjectDir(),
+      );
+      const referenceValues = [...candidates.keys()];
+      const pullerReferences = await db
+        .select({
+          imageUrl: pullersTable.imageUrl,
+          drawing2dUrl: pullersTable.drawing2dUrl,
+          drawing3dUrl: pullersTable.drawing3dUrl,
+        })
+        .from(pullersTable)
+        .where(
+          or(
+            inArray(pullersTable.imageUrl, referenceValues),
+            inArray(pullersTable.drawing2dUrl, referenceValues),
+            inArray(pullersTable.drawing3dUrl, referenceValues),
+          ),
+        );
+      const versionReferences = await db
+        .select({
+          designImageUrl: pullerVersionsTable.designImageUrl,
+          drawing2dUrl: pullerVersionsTable.drawing2dUrl,
+          drawing3dUrl: pullerVersionsTable.drawing3dUrl,
+        })
+        .from(pullerVersionsTable)
+        .where(
+          or(
+            inArray(pullerVersionsTable.designImageUrl, referenceValues),
+            inArray(pullerVersionsTable.drawing2dUrl, referenceValues),
+            inArray(pullerVersionsTable.drawing3dUrl, referenceValues),
+          ),
+        );
+
+      const referencedPaths = new Set<string>();
+      for (const row of [...pullerReferences, ...versionReferences]) {
+        for (const reference of Object.values(row)) {
+          if (reference) {
+            const objectPath = candidates.get(reference);
+            if (objectPath) referencedPaths.add(objectPath);
+          }
+        }
+      }
+
+      const result = await cleanupUnreferencedUploadObjects(
+        objectPaths,
+        referencedPaths,
+        (objectPath) => objectStorageService.deleteUploadedObject(objectPath),
+      );
+      res.json(CleanupUploadedObjectsResponse.parse(result));
+    } catch (error) {
+      req.log.error({ err: error }, 'Failed to clean up rejected import uploads');
+      res.status(500).json({ error: 'Uploaded file cleanup could not be completed.' });
     }
   },
 );

@@ -73,6 +73,24 @@ export interface UploadUrl {
   metadata?: UploadRequest;
 }
 
+export interface UploadCleanupRequest {
+  /**
+     * @minItems 1
+     * @maxItems 1000
+     * @items.pattern ^/objects/uploads/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+     */
+  objectPaths: string[];
+}
+
+export interface UploadCleanupResult {
+  /** @minimum 0 */
+  deletedCount: number;
+  /** @minimum 0 */
+  skippedReferencedCount: number;
+  /** @minimum 0 */
+  failedCount: number;
+}
+
 export type VendorStatus = typeof VendorStatus[keyof typeof VendorStatus];
 
 

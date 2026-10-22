@@ -470,6 +470,8 @@ export function PullerBulkImportDialog({
     setSaving(true);
     setSaveError('');
     setUploadedFiles(0);
+    const uploadedObjectPaths: string[] = [];
+    let importCommitted = false;
     try {
       const items: PullerBulkImportItem[] = [];
       for (const row of validRows) {
@@ -482,6 +484,7 @@ export function PullerBulkImportDialog({
           if (!file) continue;
           const uploaded = await uploadFile(file);
           if (!uploaded) throw new Error(`Could not upload "${file.name}". No puller records were changed.`);
+          uploadedObjectPaths.push(uploaded.objectPath);
           item.media ??= {};
           item.media[`${kind}Url`] = uploaded.objectPath;
           item.media[`${kind}Name`] = file.name;
@@ -490,6 +493,7 @@ export function PullerBulkImportDialog({
         items.push(item);
       }
       const result = await importMutation.mutateAsync({ data: { items } });
+      importCommitted = true;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListPullersQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() }),
@@ -497,7 +501,28 @@ export function PullerBulkImportDialog({
       ]);
       onImported(result.importedCount);
     } catch (error) {
-      setSaveError(errorMessage(error));
+      let cleanupNotice = '';
+      if (!importCommitted && uploadedObjectPaths.length) {
+        try {
+          const response = await fetch('/api/storage/uploads/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ objectPaths: uploadedObjectPaths }),
+          });
+          if (!response.ok) {
+            throw new Error('Cleanup request failed');
+          }
+          const result = await response.json() as {
+            failedCount?: number;
+          };
+          if (result.failedCount) {
+            cleanupNotice = ' Some uploaded files could not be removed automatically.';
+          }
+        } catch {
+          cleanupNotice = ' Some uploaded files may remain in storage because automatic cleanup failed.';
+        }
+      }
+      setSaveError(`${errorMessage(error)}${cleanupNotice}`);
     } finally {
       setSaving(false);
     }

@@ -539,7 +539,7 @@ export const CreatePullerResponse = zod.object({
 
 
 /**
- * Applies only new or identical specification values and rejects conflicting populated fields or media.
+ * Applies the batch atomically. Missing pullers or conflicts with populated specifications or media reject the entire batch without changing any records. Identical existing specification values are accepted without updating the record.
  * @summary Import specifications and private media for existing pullers
  */
 
@@ -1023,6 +1023,33 @@ export const RequestUploadUrlResponse = zod.object({
   "size": zod.number().int().min(1).max(requestUploadUrlResponseMetadataSizeMax),
   "contentType": zod.string().min(1)
 }).optional()
+})
+
+
+/**
+ * @summary Remove unreferenced uploaded files after a rejected import
+ */
+export const cleanupUploadedObjectsBodyObjectPathsItemRegExp = new RegExp('^/objects/uploads/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const cleanupUploadedObjectsBodyObjectPathsMax = 1000;
+
+
+
+export const CleanupUploadedObjectsBody = zod.object({
+  "objectPaths": zod.array(zod.string().regex(cleanupUploadedObjectsBodyObjectPathsItemRegExp)).min(1).max(cleanupUploadedObjectsBodyObjectPathsMax)
+})
+
+export const cleanupUploadedObjectsResponseDeletedCountMin = 0;
+
+export const cleanupUploadedObjectsResponseSkippedReferencedCountMin = 0;
+
+export const cleanupUploadedObjectsResponseFailedCountMin = 0;
+
+
+
+export const CleanupUploadedObjectsResponse = zod.object({
+  "deletedCount": zod.number().int().min(cleanupUploadedObjectsResponseDeletedCountMin),
+  "skippedReferencedCount": zod.number().int().min(cleanupUploadedObjectsResponseSkippedReferencedCountMin),
+  "failedCount": zod.number().int().min(cleanupUploadedObjectsResponseFailedCountMin)
 })
 
 

@@ -47,6 +47,8 @@ export * from './pullerVersion';
 export * from './pullerVersionApprovalStatus';
 export * from './pullerVersionInput';
 export * from './pullerVersionInputApprovalStatus';
+export * from './uploadCleanupRequest';
+export * from './uploadCleanupResult';
 export * from './uploadRequest';
 export * from './uploadUrl';
 export * from './vendor';
