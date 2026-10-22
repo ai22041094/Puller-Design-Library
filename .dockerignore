@@ -23,3 +23,7 @@ node_modules
 coverage
 **/coverage
 *.log
+*.dump
+*.sql.gz
+backups
+backups/**

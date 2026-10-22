@@ -13,12 +13,36 @@ services are configured with compatible external replacements. See
 
 ## Requirements
 
-- A Linux server with Docker Engine and the Docker Compose v2 plugin.
+- An x86-64 Linux server with Docker Engine and the Docker Compose v2 plugin.
 - Git (or another way to copy this repository to the server).
 - A DNS name and HTTPS reverse proxy for production sign-in. The app marks
   authentication cookies as `Secure`.
 
 The Dockerfile uses Node.js 24 and pnpm 10.26.1 to match this workspace.
+The workspace currently excludes native ARM64 build packages, so ARM servers
+need a separate dependency/build-platform review before deployment.
+
+Install Docker Engine and the Compose plugin using the instructions for your
+distribution at <https://docs.docker.com/engine/install/>. Confirm installation
+and that your account can access the Docker daemon:
+
+```sh
+docker --version
+docker compose version
+docker info
+```
+
+### Project structure and commands
+
+| Component | Technology and path | Build/start |
+| --- | --- | --- |
+| Frontend | React 19, Vite 7, Tailwind CSS; `artifacts/puller-library` | `PORT=19468 BASE_PATH=/ pnpm --filter @workspace/puller-library run build`; output: `dist/public`. Nginx serves this output on container port 80. |
+| API | Express 5, TypeScript, esbuild; `artifacts/api-server` | `pnpm --filter @workspace/api-server run build`; start: `node --enable-source-maps artifacts/api-server/dist/index.mjs`, with `PORT=8080`. Node listens on all interfaces by default. |
+| Database | PostgreSQL 16, Drizzle ORM; `lib/db` | `pnpm --filter @workspace/db run push` applies the current schema. |
+| Shared code | API contract, generated clients/validators, auth/upload helpers; `lib/*` | Consumed by the frontend and API builds. |
+| Design preview | `artifacts/mockup-sandbox` | Development-only; not started by Compose. |
+
+The API stays on the internal Compose network. Only Nginx's port is published.
 
 ## Configure
 
@@ -71,6 +95,9 @@ configured by `WEB_PORT`). For production, place it behind an HTTPS reverse prox
 proxy to forward the original `Host`, `X-Forwarded-Host`, and
 `X-Forwarded-Proto` headers so the authentication callback uses the public
 HTTPS address.
+If the HTTPS proxy runs on the same host, bind the published HTTP port to
+`127.0.0.1` or restrict it with the server firewall rather than exposing both
+HTTP and HTTPS publicly.
 
 The OIDC client must allow this callback URL:
 
@@ -136,6 +163,8 @@ docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -
 ```
 
 Restore into an empty database after starting the `db` service:
+The following command drops/replaces matching objects in the target database;
+do not run it against valuable data without a verified backup.
 
 ```sh
 docker compose exec -T db sh -c \

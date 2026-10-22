@@ -1,0 +1,1 @@
+- [Docker verification limits](docker-verification.md) — workspace Docker builds work, but nested container exec/health checks may fail independently of app configuration.
