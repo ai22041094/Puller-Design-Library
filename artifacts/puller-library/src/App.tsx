@@ -14,7 +14,9 @@ import {
 } from '@workspace/api-client-react';
 import type { CustomerInput, Puller, PullerInput, PullerVersionInput, Vendor, VendorInput } from '@workspace/api-client-react';
 import { Link, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
-import { useAuth } from '@workspace/replit-auth-web';
+import { useAuth } from '@workspace/auth-web';
+import { PasswordLogin } from '@/components/password-login';
+import { ChangePassword } from '@/components/change-password';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { PullerMediaWorkspace } from '@/components/puller-media-workspace';
 import { PullerBulkImportDialog } from '@/components/puller-bulk-import-dialog';
@@ -42,7 +44,8 @@ function Shell({ children }: { children: ReactNode }) {
       <div className="side-foot"><strong>R&D + Sales workspace</strong>One source of truth for every puller design.</div>
     </aside>
     <div className="main-area">
-      <header className="topbar"><span className="topbar-kicker">Product engineering / Puller library</span><div className="topbar-right"><span>{auth.user?.firstName || auth.user?.email || 'Design operations'}</span><span className="team-badge">RD</span><button className="btn small" onClick={auth.logout} data-testid="button-logout">Log out</button></div></header>
+      <header className="topbar"><span className="topbar-kicker">Product engineering / Puller library</span><div className="topbar-right"><span>{auth.user?.firstName || auth.user?.email || 'Design operations'}</span><ChangePassword onChange={auth.changePassword}/><button className="btn small" onClick={auth.logout} data-testid="button-logout">Log out</button></div></header>
+      {auth.error && <div role="alert">{auth.error}</div>}
       {children}
     </div>
   </div>;
@@ -221,7 +224,7 @@ function App() {
 function AuthGate() {
   const auth=useAuth();
   if(auth.isLoading)return <div className="auth-screen"><div className="auth-card"><div className="auth-mark">PL</div><div className="eyebrow">Design library</div><h1>Opening your workspace</h1><div className="auth-skeleton"><i/><i/><i/></div></div></div>;
-  if(!auth.isAuthenticated)return <div className="auth-screen"><section className="auth-card"><div className="auth-mark">PL</div><div className="eyebrow">PULLER / DESIGN LIBRARY</div><h1>Technical work, in one place.</h1><p>Sign in to review puller specifications, drawings and manufacturing details with your team.</p><button className="btn primary auth-login" onClick={auth.login} data-testid="button-login">Log in to continue <ArrowRight/></button><div className="auth-foot">A secure workspace for product engineering</div></section></div>;
+  if(!auth.isAuthenticated)return <PasswordLogin serviceError={auth.error} onLogin={async(email,password)=>{await auth.login(email,password);queryClient.clear();}}/>;
   return <AuthContext.Provider value={auth}><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/,'')}><Router/></WouterRouter></AuthContext.Provider>;
 }
 export default App;

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+// Kept compatible with existing records; legacy sessions are rejected by auth.
 export const sessionsTable = pgTable(
   'sessions',
   {
@@ -12,7 +12,6 @@ export const sessionsTable = pgTable(
   (table) => [index('IDX_session_expire').on(table.expire)],
 );
 
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const usersTable = pgTable('users', {
   id: varchar('id')
     .primaryKey()
@@ -28,6 +27,12 @@ export const usersTable = pgTable('users', {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+});
+
+export const credentialsTable = pgTable('password_credentials', {
+  userId: varchar('user_id').primaryKey().references(() => usersTable.id, { onDelete: 'cascade' }),
+  passwordHash: varchar('password_hash').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type UpsertUser = typeof usersTable.$inferInsert;

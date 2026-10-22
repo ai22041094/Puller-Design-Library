@@ -8,6 +8,7 @@
 import type { UploadRequest } from './uploadRequest';
 
 export interface UploadUrl {
+  /** Same-origin authenticated PUT URL */
   uploadURL: string;
   objectPath: string;
   metadata?: UploadRequest;

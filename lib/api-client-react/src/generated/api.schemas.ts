@@ -33,21 +33,27 @@ export interface AuthUserEnvelope {
   user: AuthUser | null;
 }
 
-export interface MobileTokenExchangeRequest {
-  /** @minLength 1 */
-  code: string;
-  /** @minLength 1 */
-  code_verifier: string;
-  /** @minLength 1 */
-  redirect_uri: string;
-  /** @minLength 1 */
-  state: string;
-  /** @minLength 1 */
-  nonce?: string;
+export interface PasswordLogin {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
 }
 
-export interface MobileTokenExchangeSuccess {
-  token: string;
+export interface PasswordChange {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  currentPassword: string;
+  /**
+     * @minLength 12
+     * @maxLength 128
+     */
+  newPassword: string;
 }
 
 export const LogoutSuccessValue = {
@@ -68,6 +74,7 @@ export interface UploadRequest {
 }
 
 export interface UploadUrl {
+  /** Same-origin authenticated PUT URL */
   uploadURL: string;
   objectPath: string;
   metadata?: UploadRequest;
@@ -610,12 +617,4 @@ export const ListPullersSort = {
   identifier: 'identifier',
   vendor: 'vendor',
 } as const;
-
-export type BeginBrowserLoginParams = {
-returnTo?: string;
-};
-
-export type LogoutBrowserSessionParams = {
-returnTo?: string;
-};
 

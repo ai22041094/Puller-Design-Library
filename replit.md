@@ -10,7 +10,7 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
-- Replit Auth and App Storage are configured for authenticated, private drawing uploads.
+- App-managed email/password accounts protect private drawings. Production setup is documented in README-DOCKER.md.
 
 ## Stack
 
@@ -26,7 +26,7 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 - `artifacts/puller-library` — React/Vite app with the dashboard, catalogue, puller detail and version history, vendor/customer directory, and comparison routes.
 - `artifacts/api-server/src/routes/puller-library.ts` — API operations for summaries, vendors, customers, pullers, versions, and comparison.
 - `artifacts/api-server/src/routes/storage.ts` — authenticated presigned uploads and private file reads.
-- `lib/db/src/schema/auth.ts` — Replit Auth sessions and user records.
+- `lib/db/src/schema/auth.ts` — users, password credentials, and persistent sessions.
 - `lib/api-spec/openapi.yaml` — API contract source of truth.
 - `lib/db/src/schema/puller-library.ts` — relational schema for vendors, customers, pullers, and immutable design versions.
 - `artifacts/puller-library/public/seed-images` — supplied reference images used by the starter catalogue.
@@ -35,7 +35,7 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 
 - The web app calls the shared Express API through generated React Query hooks.
 - PostgreSQL stores normalized vendor/customer/puller/version relationships; image URLs are metadata, not database blobs.
-- Replit Auth protects catalogue and private media endpoints. Uploaded drawings and models live in private App Storage; the database stores object paths and file names.
+- Password sessions protect catalogue and private media endpoints. Uploaded drawings/models live in a private filesystem volume; the database stores object paths and file names. Production has no Replit npm/runtime dependencies.
 - Puller records store configurable dimensions in mm, cm, or inches and support 2D image/PDF and 3D GLB/STL previews.
 - Design versions are append-only and receive their version number on the server.
 - The initial catalogue includes sample records and the supplied reference images so the app is useful on first load.
@@ -52,11 +52,12 @@ An enterprise catalogue for R&D and Sales teams to find, compare, and manage mul
 
 ## User preferences
 
-_No explicit preferences recorded._
+- Production must be standalone: app-managed email/password accounts, persistent server-volume uploads, Nginx HTTPS with supplied certificate files, and no Replit packages or runtime services.
+- Keep development/preview services out of the production Compose stack. Use setup.sh for server deployment.
 
 ## Gotchas
 
-- Replit Auth currently verifies sign-in only; the catalogue and private files are shared with every account that can sign in. Add an approved-team access rule before storing confidential designs.
+- Accounts are provisioned only by the server operator through setup.sh; all provisioned accounts share library access. There is no public signup. Existing cloud files must be exported/copied before standalone deployment.
 
 ## Pointers
 

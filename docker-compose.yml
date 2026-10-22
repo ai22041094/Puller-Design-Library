@@ -30,8 +30,23 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migration
-    profiles: ["migration"]
+    profiles: ["tools"]
     restart: "no"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-puller}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-puller_library}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  account:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migration
+    profiles: ["tools"]
+    restart: "no"
+    entrypoint: ["pnpm", "--filter", "@workspace/api-server", "exec", "tsx", "src/cli/account.ts"]
+    command: []
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-puller}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-puller_library}
     depends_on:
@@ -48,8 +63,11 @@ services:
       NODE_ENV: production
       PORT: "8080"
       DATABASE_URL: postgresql://${POSTGRES_USER:-puller}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-puller_library}
-      ISSUER_URL: ${ISSUER_URL:-https://replit.com/oidc}
-      REPL_ID: ${REPL_ID:-}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to your HTTPS origin}
+      UPLOAD_DIR: /data
+      LEGACY_PRIVATE_OBJECT_DIR: ${LEGACY_PRIVATE_OBJECT_DIR:-}
+    volumes:
+      - uploads_data:/data
     depends_on:
       db:
         condition: service_healthy
@@ -72,11 +90,18 @@ services:
       dockerfile: Dockerfile
       target: web
     restart: unless-stopped
+    environment:
+      SERVER_NAME: ${DOMAIN:?Set DOMAIN in .env}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN in .env}
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/certs:/etc/nginx/certs:ro
     depends_on:
       api:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  uploads_data:

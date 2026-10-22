@@ -27,3 +27,10 @@ coverage
 *.sql.gz
 backups
 backups/**
+docker/certs
+docker/certs/**
+data
+data/**
+artifacts/api-server/data
+artifacts/api-server/data/**
+**/.replit-artifact

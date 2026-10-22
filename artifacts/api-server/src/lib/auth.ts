@@ -1,83 +1,50 @@
-import crypto from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { AuthUser } from '@workspace/api-zod';
 import { db, sessionsTable } from '@workspace/db';
-import { eq } from 'drizzle-orm';
-import { type Request, type Response } from 'express';
-import * as client from 'openid-client';
+import { eq, sql } from 'drizzle-orm';
+import type { Request, Response } from 'express';
 
-export const ISSUER_URL = process.env.ISSUER_URL ?? 'https://replit.com/oidc';
 export const SESSION_COOKIE = 'sid';
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+export interface SessionData { version: 2; user: AuthUser }
+const digest = (sid: string) => createHash('sha256').update(sid).digest('hex');
 
-export interface SessionData {
-  user: AuthUser;
-  access_token: string;
-  refresh_token?: string;
-  expires_at?: number;
-}
-
-let oidcConfig: client.Configuration | null = null;
-
-export async function getOidcConfig(): Promise<client.Configuration> {
-  if (!oidcConfig) {
-    oidcConfig = await client.discovery(
-      new URL(ISSUER_URL),
-      process.env.REPL_ID!,
-    );
-  }
-  return oidcConfig;
-}
-
-export async function createSession(data: SessionData): Promise<string> {
-  const sid = crypto.randomBytes(32).toString('hex');
+export async function createSession(user: AuthUser): Promise<string> {
+  const sid = randomBytes(32).toString('hex');
   await db.insert(sessionsTable).values({
-    sid,
-    sess: data as unknown as Record<string, unknown>,
-    expire: new Date(Date.now() + SESSION_TTL),
+    sid: digest(sid), sess: { version: 2, user }, expire: new Date(Date.now() + SESSION_TTL),
   });
   return sid;
 }
 
 export async function getSession(sid: string): Promise<SessionData | null> {
-  const [row] = await db
-    .select()
-    .from(sessionsTable)
-    .where(eq(sessionsTable.sid, sid));
-
-  if (!row || row.expire < new Date()) {
-    if (row) await deleteSession(sid);
-    return null;
-  }
-
-  return row.sess as unknown as SessionData;
+  if (!/^[a-f0-9]{64}$/.test(sid)) return null;
+  const [row] = await db.select().from(sessionsTable).where(eq(sessionsTable.sid, digest(sid)));
+  const session = row?.sess as Partial<SessionData> | undefined;
+  if (!row || row.expire < new Date() || session?.version !== 2 || !session.user?.id) return null;
+  return session as SessionData;
 }
 
-export async function updateSession(
-  sid: string,
-  data: SessionData,
-): Promise<void> {
-  await db
-    .update(sessionsTable)
-    .set({
-      sess: data as unknown as Record<string, unknown>,
-      expire: new Date(Date.now() + SESSION_TTL),
-    })
-    .where(eq(sessionsTable.sid, sid));
+export async function deleteSession(sid: string) {
+  await db.delete(sessionsTable).where(eq(sessionsTable.sid, digest(sid)));
 }
 
-export async function deleteSession(sid: string): Promise<void> {
-  await db.delete(sessionsTable).where(eq(sessionsTable.sid, sid));
+export async function revokeUserSessions(userId: string) {
+  await db.delete(sessionsTable).where(sql`${sessionsTable.sess}->'user'->>'id' = ${userId}`);
 }
 
-export async function clearSession(res: Response, sid?: string): Promise<void> {
+export async function clearSession(res: Response, sid?: string) {
   if (sid) await deleteSession(sid);
-  res.clearCookie(SESSION_COOKIE, { path: '/' });
+  res.clearCookie(SESSION_COOKIE, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+}
+
+export function setSessionCookie(res: Response, sid: string) {
+  res.cookie(SESSION_COOKIE, sid, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax', path: '/', maxAge: SESSION_TTL,
+  });
 }
 
 export function getSessionId(req: Request): string | undefined {
-  const authHeader = req.headers['authorization'];
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-  return req.cookies?.[SESSION_COOKIE];
+  return typeof req.cookies?.[SESSION_COOKIE] === 'string' ? req.cookies[SESSION_COOKIE] : undefined;
 }

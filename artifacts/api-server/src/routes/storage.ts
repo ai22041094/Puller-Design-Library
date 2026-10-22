@@ -9,7 +9,6 @@ import {
 import { Router, type IRouter, type Request, type Response } from 'express';
 import { inArray, or } from 'drizzle-orm';
 
-import { ObjectPermission } from '../lib/objectAcl';
 import { db, pullerVersionsTable, pullersTable } from '@workspace/db';
 import {
   cleanupUnreferencedUploadObjects,
@@ -18,6 +17,7 @@ import {
 import {
   ObjectNotFoundError,
   ObjectStorageService,
+  UploadError,
 } from '../lib/objectStorage';
 
 const router: IRouter = Router();
@@ -80,7 +80,7 @@ router.post(
         return;
       }
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL({ name, size, contentType }, req.user!.id);
       const objectPath =
         objectStorageService.normalizeObjectEntityPath(uploadURL);
 
@@ -97,6 +97,22 @@ router.post(
     }
   },
 );
+
+router.put('/storage/uploads/:id', async (req: Request, res: Response) => {
+  if (!hasAuthenticatedSession(req)) { res.status(401).json({ error: 'Authentication required.' }); return; }
+  try {
+    await objectStorageService.receiveUpload(
+      String(req.params.id), req.user!.id, req,
+      req.get('content-type') || '', req.get('content-length'),
+    );
+    res.status(204).end();
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: 'Upload not found.' }); return; }
+    if (error instanceof UploadError) { res.status(error.status).json({ error: error.message }); return; }
+    req.log.error({ err: error }, 'Local upload failed');
+    res.status(500).json({ error: 'Upload failed.' });
+  }
+});
 
 router.post(
   '/storage/uploads/cleanup',

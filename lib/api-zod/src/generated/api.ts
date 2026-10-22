@@ -1016,7 +1016,7 @@ export const requestUploadUrlResponseMetadataSizeMax = 52428800;
 
 
 export const RequestUploadUrlResponse = zod.object({
-  "uploadURL": zod.string().url(),
+  "uploadURL": zod.string().describe('Same-origin authenticated PUT URL'),
   "objectPath": zod.string(),
   "metadata": zod.object({
   "name": zod.string().min(1),
@@ -1074,6 +1074,16 @@ export const GetPublicObjectResponse = zod.unknown()
 
 
 /**
+ * @summary Write bytes using an account-bound upload grant
+ */
+export const UploadLocalFileParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UploadLocalFileResponse = zod.void()
+
+
+/**
  * @summary Get the current sign-in state
  */
 export const GetCurrentAuthUserHeader = zod.object({
@@ -1092,59 +1102,53 @@ export const GetCurrentAuthUserResponse = zod.object({
 
 
 /**
- * @summary Start browser sign-in
+ * @summary Sign in with an operator-provisioned account
  */
-export const BeginBrowserLoginQueryParams = zod.object({
-  "returnTo": zod.coerce.string().optional()
+export const loginWithPasswordBodyEmailMax = 254;
+
+export const loginWithPasswordBodyPasswordMax = 128;
+
+
+
+export const LoginWithPasswordBody = zod.object({
+  "email": zod.string().email().max(loginWithPasswordBodyEmailMax),
+  "password": zod.string().min(1).max(loginWithPasswordBodyPasswordMax)
 })
 
-export const BeginBrowserLoginResponse = zod.void()
+export const LoginWithPasswordResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
 
 
 /**
- * @summary Complete browser sign-in
+ * @summary Change password and revoke all account sessions
  */
-export const HandleBrowserLoginCallbackResponse = zod.void()
+export const changePasswordBodyCurrentPasswordMax = 128;
+
+export const changePasswordBodyNewPasswordMin = 12;
+export const changePasswordBodyNewPasswordMax = 128;
 
 
-/**
- * @summary End browser session
- */
-export const LogoutBrowserSessionQueryParams = zod.object({
-  "returnTo": zod.coerce.string().optional()
+
+export const ChangePasswordBody = zod.object({
+  "currentPassword": zod.string().min(1).max(changePasswordBodyCurrentPasswordMax),
+  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin).max(changePasswordBodyNewPasswordMax)
 })
 
-export const LogoutBrowserSessionResponse = zod.void()
+export const ChangePasswordResponse = zod.unknown()
 
 
-/**
- * @summary Exchange a mobile sign-in code
- */
-
-
-
-
-
-
-
-export const ExchangeMobileAuthorizationCodeBody = zod.object({
-  "code": zod.string().min(1),
-  "code_verifier": zod.string().min(1),
-  "redirect_uri": zod.string().url().min(1),
-  "state": zod.string().min(1),
-  "nonce": zod.string().min(1).optional()
-})
-
-export const ExchangeMobileAuthorizationCodeResponse = zod.object({
-  "token": zod.string()
-})
-
-
-export const LogoutMobileSessionHeader = zod.object({
+export const LogoutPasswordSessionHeader = zod.object({
   "Authorization": zod.string().optional()
 })
 
-export const LogoutMobileSessionResponse = zod.object({
+export const LogoutPasswordSessionResponse = zod.object({
   "success": zod.literal(true)
 })
 
