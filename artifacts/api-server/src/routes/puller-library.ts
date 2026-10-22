@@ -405,6 +405,7 @@ router.post("/pullers/bulk-import", async (req, res): Promise<void> => {
         .select()
         .from(pullersTable)
         .where(inArray(pullersTable.id, ids))
+        .orderBy(asc(pullersTable.id))
         .for("update");
       const byId = new Map(rows.map((row) => [row.id, row]));
       const conflicts: string[] = [];

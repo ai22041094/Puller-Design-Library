@@ -243,7 +243,7 @@ paths:
       operationId: bulkImportPullers
       tags: [pullers]
       summary: Import specifications and private media for existing pullers
-      description: Applies only new or identical specification values and rejects conflicting populated fields or media.
+      description: Applies the batch atomically. Missing pullers or conflicts with populated specifications or media reject the entire batch without changing any records. Identical existing specification values are accepted without updating the record.
       requestBody:
         required: true
         content:
@@ -252,19 +252,19 @@ paths:
               $ref: "#/components/schemas/PullerBulkImportInput"
       responses:
         "200":
-          description: Puller records imported
+          description: All puller records in the batch imported successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PullerBulkImportResult"
         "400":
-          description: Invalid puller import payload.
+          description: Invalid import payload, including duplicate puller IDs.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "409":
-          description: One or more pullers have conflicting populated specifications or media.
+          description: A puller is missing or one or more pullers have conflicting populated specifications or media. No records are changed.
           content:
             application/json:
               schema:
