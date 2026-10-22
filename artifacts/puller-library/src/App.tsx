@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import {
   Activity, ArrowDownUp, ArrowLeft, ArrowRight, Boxes, Building2, ChevronDown,
   Clock3, Factory, FilePlus2, FileText, LayoutDashboard,
-  LoaderCircle, PackageSearch, Plus, Search, Settings2, Users, X,
+  FileUp, LoaderCircle, PackageSearch, Plus, Search, Settings2, Users, X,
 } from 'lucide-react';
 import {
   getGetDashboardQueryKey, getGetPullerQueryKey, getGetVendorQueryKey, getListCustomersQueryKey,
@@ -17,6 +17,7 @@ import { Link, Route, Switch, useLocation, useParams, Router as WouterRouter } f
 import { useAuth } from '@workspace/replit-auth-web';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { PullerMediaWorkspace } from '@/components/puller-media-workspace';
+import { PullerBulkImportDialog } from '@/components/puller-bulk-import-dialog';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
@@ -118,7 +119,7 @@ function PullerForm({ onSubmit, pending, error, onCancel, vendors, customers }: 
 function Catalogue() {
   const qc = useQueryClient();
   const [q, setQ] = useState(''); const [status, setStatus] = useState(''); const [vendorId, setVendorId] = useState(''); const [customerId, setCustomerId] = useState(''); const [material, setMaterial] = useState(''); const [finish, setFinish] = useState(''); const [size, setSize] = useState(''); const [market, setMarket] = useState(''); const [page, setPage] = useState(1);
-  const [createOpen, setCreateOpen] = useState(false); const [formErr, setFormErr] = useState('');
+   const [createOpen, setCreateOpen] = useState(false); const [bulkImportOpen, setBulkImportOpen] = useState(false); const [importNotice, setImportNotice] = useState(''); const [formErr, setFormErr] = useState('');
   const params = useMemo(() => ({ q: q || undefined, status: status || undefined, vendorId: vendorId ? Number(vendorId) : undefined, customerId: customerId ? Number(customerId) : undefined, material: material || undefined, finish: finish || undefined, size: size || undefined, market: market || undefined, page, limit: 12, sort: 'recent' as const }), [q,status,vendorId,customerId,material,finish,size,market,page]);
   const query = useListPullers(params); const vendorsQuery = useListVendors(); const customersQuery = useListCustomers();
   const create = useCreatePuller();
@@ -128,7 +129,8 @@ function Catalogue() {
     const payload: PullerInput = { uniqueIdentifier:value(fd,'uniqueIdentifier'),partName:value(fd,'partName'),vendorId:Number(value(fd,'vendorId')),customerId:Number(value(fd,'customerId')),size:optional(fd,'size'),material:optional(fd,'material'),waveCode:optional(fd,'waveCode'),developmentNumber:optional(fd,'developmentNumber'),finish:optional(fd,'finish'),compatibilityType:optional(fd,'compatibilityType'),status:(optional(fd,'status') as PullerInput['status']) || 'draft',marketType:optional(fd,'marketType'),requirementName:optional(fd,'requirementName'),requirementNumber:optional(fd,'requirementNumber'),remarks:optional(fd,'remarks') };
     create.mutate({ data:payload }, { onSuccess: () => { qc.invalidateQueries({queryKey:getListPullersQueryKey()});qc.invalidateQueries({queryKey:getGetDashboardQueryKey()});setCreateOpen(false); }, onError:err=>setFormErr(formError(err)) });
   };
-  return <Page><PageTitle eyebrow="Library / Pullers" title="Puller catalogue" subtitle="Search the full design record. Filter by vendor, material or current workflow stage." action={<button className="btn primary" onClick={() => setCreateOpen(true)}><Plus />New puller</button>} />
+   return <Page><PageTitle eyebrow="Library / Pullers" title="Puller catalogue" subtitle="Search the full design record. Filter by vendor, material or current workflow stage." action={<div style={{display:'flex',gap:8}}><button className="btn" onClick={() => {setImportNotice('');setBulkImportOpen(true)}}><FileUp />Bulk import</button><button className="btn primary" onClick={() => setCreateOpen(true)}><Plus />New puller</button></div>} />
+     {importNotice&&<p className="bulk-import-notice" role="status">{importNotice}</p>}
     <div className="panel" style={{ padding:16, marginBottom:14 }}><div className="search-row"><div className="searchbox"><Search /><input className="field" aria-label="Search puller catalogue" placeholder="Search identifier, part, customer, wave…" value={q} onChange={e=>{setQ(e.target.value);setPage(1)}} data-testid="input-catalogue-search" /></div><span className="count-note">{query.data?.total ?? '—'} designs</span></div>
       <div className="filterbar"><select className="select" aria-label="Filter by vendor" value={vendorId} onChange={e=>{setVendorId(e.target.value);setPage(1)}}><option value="">All vendors</option>{(vendorsQuery.data||[]).map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select>
         <select className="select" aria-label="Filter by customer" value={customerId} onChange={e=>{setCustomerId(e.target.value);setPage(1)}}><option value="">All customers</option>{(customersQuery.data||[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
@@ -143,6 +145,7 @@ function Catalogue() {
       {items.map(p=><tr key={p.id}><td><Link href={`/pullers/${p.id}`} className="inline-link mono">{p.uniqueIdentifier}</Link></td><td><div className="primary-cell">{p.partName}</div><div className="recent-sub">{p.size || 'Size not set'}{p.waveCode ? ` · ${p.waveCode}` : ''}</div></td><td>{p.customerName}</td><td>{p.vendorName}</td><td>{[p.material,p.finish].filter(Boolean).join(' · ') || '—'}</td><td><Status value={p.status} /></td><td className="mono">v{p.versionCount || 1}</td></tr>)}
     </tbody></table>{!items.length && <Empty title="No matching pullers" copy="Adjust the search or filters to see more of the catalogue." />}</div><div className="pagination"><span>Showing {items.length ? (page-1)*12+1 : 0}–{Math.min(page*12,query.data?.total||0)} of {query.data?.total || 0}</span><div style={{display:'flex',gap:7}}><button className="btn small" disabled={page<=1} onClick={()=>setPage(page-1)}>Previous</button><button className="btn small" disabled={page*12>=(query.data?.total||0)} onClick={()=>setPage(page+1)}>Next <ArrowRight /></button></div></div></section>}
     {createOpen && <Modal title="Add a puller design" onClose={()=>setCreateOpen(false)}><PullerForm onSubmit={submit} pending={create.isPending} error={formErr} onCancel={()=>setCreateOpen(false)} vendors={vendorsQuery.data||[]} customers={customersQuery.data||[]} /></Modal>}
+     {bulkImportOpen&&<PullerBulkImportDialog onClose={()=>setBulkImportOpen(false)} onImported={count=>{setBulkImportOpen(false);setImportNotice(`Imported specifications and media for ${count} puller${count===1?'':'s'}.`)}}/>}
   </Page>;
 }
 

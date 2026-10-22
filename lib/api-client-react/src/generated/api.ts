@@ -36,6 +36,8 @@ import type {
   MobileTokenExchangeSuccess,
   NotFoundResponse,
   Puller,
+  PullerBulkImportInput,
+  PullerBulkImportResult,
   PullerCompareInput,
   PullerInput,
   PullerListResponse,
@@ -905,6 +907,95 @@ export const useCreatePuller = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getCreatePullerMutationOptions(options));
+    }
+
+export const getBulkImportPullersUrl = () => {
+
+
+
+
+  return `/api/pullers/bulk-import`
+}
+
+/**
+ * Applies only new or identical specification values and rejects conflicting populated fields or media.
+ * @summary Import specifications and private media for existing pullers
+ */
+export const bulkImportPullers = async (pullerBulkImportInput: PullerBulkImportInput, options?: Parameters<typeof customFetch>[1]): Promise<PullerBulkImportResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PullerBulkImportResult>(getBulkImportPullersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(pullerBulkImportInput)
+  }
+);}
+
+
+
+
+
+export const getBulkImportPullersMutationKey = () => ['bulkImportPullers'] as const;
+
+export const getBulkImportPullersMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportPullers>>, TError,BulkImportPullersMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkImportPullers>>, TError,BulkImportPullersMutationVariables, TContext> => {
+
+const mutationKey = getBulkImportPullersMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkImportPullers>>, BulkImportPullersMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkImportPullers(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkImportPullersMutationResult = NonNullable<Awaited<ReturnType<typeof bulkImportPullers>>>
+    export type BulkImportPullersMutationBody = BodyType<PullerBulkImportInput>
+    export type BulkImportPullersMutationError = ErrorType<Error>
+    export type BulkImportPullersMutationVariables = {data: BodyType<PullerBulkImportInput>}
+
+    /**
+ * @summary Import specifications and private media for existing pullers
+ */
+export const useBulkImportPullers = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportPullers>>, TError,BulkImportPullersMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkImportPullers>>,
+        TError,
+        BulkImportPullersMutationVariables,
+        TContext
+      > => {
+      return useMutation(getBulkImportPullersMutationOptions(options));
     }
 
 export const getGetPullerUrl = (pullerId: number,) => {

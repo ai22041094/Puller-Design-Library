@@ -539,6 +539,84 @@ export const CreatePullerResponse = zod.object({
 
 
 /**
+ * Applies only new or identical specification values and rejects conflicting populated fields or media.
+ * @summary Import specifications and private media for existing pullers
+ */
+
+export const bulkImportPullersBodyItemsItemSpecificationsOverallLengthMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsOverallWidthMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsOverallHeightMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsThicknessMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsHoleDiameterMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsHoleSpacingMin = 0;
+
+export const bulkImportPullersBodyItemsItemSpecificationsWeightMin = 0;
+
+
+
+
+
+export const bulkImportPullersBodyItemsMax = 500;
+
+
+
+export const BulkImportPullersBody = zod.object({
+  "items": zod.array(zod.object({
+  "pullerId": zod.number().int().min(1),
+  "specifications": zod.object({
+  "waveCode": zod.string().optional(),
+  "developmentNumber": zod.string().optional(),
+  "mouldOrderNumber": zod.string().optional(),
+  "size": zod.string().optional(),
+  "compatibilityType": zod.string().optional(),
+  "material": zod.string().optional(),
+  "assemblyType": zod.string().optional(),
+  "logoMark": zod.string().optional(),
+  "color": zod.string().optional(),
+  "finish": zod.string().optional(),
+  "specialProcess": zod.string().optional(),
+  "torqueCpsc": zod.string().optional(),
+  "pcsPerShot": zod.string().optional(),
+  "inHouseOutsource": zod.string().optional(),
+  "capacity": zod.string().optional(),
+  "cost": zod.string().optional(),
+  "needleDetector": zod.string().optional(),
+  "buyerName": zod.string().optional(),
+  "depotCode": zod.string().optional(),
+  "requestedBy": zod.string().optional(),
+  "marketType": zod.string().optional(),
+  "requirementName": zod.string().optional(),
+  "requirementNumber": zod.string().optional(),
+  "remarks": zod.string().optional(),
+  "dimensionUnit": zod.enum(['mm', 'cm', 'in']).optional(),
+  "overallLength": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsOverallLengthMin).optional(),
+  "overallWidth": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsOverallWidthMin).optional(),
+  "overallHeight": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsOverallHeightMin).optional(),
+  "thickness": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsThicknessMin).optional(),
+  "holeDiameter": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsHoleDiameterMin).optional(),
+  "holeSpacing": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsHoleSpacingMin).optional(),
+  "weight": zod.number().min(bulkImportPullersBodyItemsItemSpecificationsWeightMin).optional()
+}).optional(),
+  "media": zod.object({
+  "drawing2dUrl": zod.string().min(1).optional(),
+  "drawing2dName": zod.string().min(1).optional(),
+  "drawing3dUrl": zod.string().min(1).optional(),
+  "drawing3dName": zod.string().min(1).optional()
+}).optional()
+})).min(1).max(bulkImportPullersBodyItemsMax)
+})
+
+export const BulkImportPullersResponse = zod.object({
+  "importedCount": zod.number().int()
+})
+
+
+/**
  * @summary Get puller details
  */
 export const GetPullerParams = zod.object({

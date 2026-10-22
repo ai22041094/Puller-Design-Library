@@ -382,6 +382,87 @@ export interface PullerMediaUpdate {
   drawing3dName?: string | null;
 }
 
+export type PullerSpecificationImportDimensionUnit = typeof PullerSpecificationImportDimensionUnit[keyof typeof PullerSpecificationImportDimensionUnit];
+
+
+export const PullerSpecificationImportDimensionUnit = {
+  mm: 'mm',
+  cm: 'cm',
+  in: 'in',
+} as const;
+
+export interface PullerSpecificationImport {
+  waveCode?: string;
+  developmentNumber?: string;
+  mouldOrderNumber?: string;
+  size?: string;
+  compatibilityType?: string;
+  material?: string;
+  assemblyType?: string;
+  logoMark?: string;
+  color?: string;
+  finish?: string;
+  specialProcess?: string;
+  torqueCpsc?: string;
+  pcsPerShot?: string;
+  inHouseOutsource?: string;
+  capacity?: string;
+  cost?: string;
+  needleDetector?: string;
+  buyerName?: string;
+  depotCode?: string;
+  requestedBy?: string;
+  marketType?: string;
+  requirementName?: string;
+  requirementNumber?: string;
+  remarks?: string;
+  dimensionUnit?: PullerSpecificationImportDimensionUnit;
+  /** @minimum 0 */
+  overallLength?: number;
+  /** @minimum 0 */
+  overallWidth?: number;
+  /** @minimum 0 */
+  overallHeight?: number;
+  /** @minimum 0 */
+  thickness?: number;
+  /** @minimum 0 */
+  holeDiameter?: number;
+  /** @minimum 0 */
+  holeSpacing?: number;
+  /** @minimum 0 */
+  weight?: number;
+}
+
+export interface PullerMediaImport {
+  /** @minLength 1 */
+  drawing2dUrl?: string;
+  /** @minLength 1 */
+  drawing2dName?: string;
+  /** @minLength 1 */
+  drawing3dUrl?: string;
+  /** @minLength 1 */
+  drawing3dName?: string;
+}
+
+export interface PullerBulkImportItem {
+  /** @minimum 1 */
+  pullerId: number;
+  specifications?: PullerSpecificationImport;
+  media?: PullerMediaImport;
+}
+
+export interface PullerBulkImportInput {
+  /**
+     * @minItems 1
+     * @maxItems 500
+     */
+  items: PullerBulkImportItem[];
+}
+
+export interface PullerBulkImportResult {
+  importedCount: number;
+}
+
 export type PullerUpdate = PullerInput;
 
 export interface PullerListResponse {

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import path from "path";
 import {
   and,
   asc,
@@ -37,6 +38,8 @@ import {
   ListVendorsResponseItem,
   ComparePullersBody,
   ComparePullersResponse,
+  BulkImportPullersBody,
+  BulkImportPullersResponse,
   PullerVersionInput,
   UpdatePullerBody,
   UpdatePullerParams,
@@ -351,6 +354,118 @@ router.post("/pullers", async (req, res): Promise<void> => {
   const [puller] = await db.insert(pullersTable).values(parsed.data).returning();
   const row = (await getPullerRows({ q: puller.uniqueIdentifier })).find((item) => item.id === puller.id);
   res.status(201).json(CreatePullerResponse.parse(row));
+});
+
+router.post("/pullers/bulk-import", async (req, res): Promise<void> => {
+  const parsed = BulkImportPullersBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const items = parsed.data.items;
+  const ids = items.map((item) => item.pullerId);
+  if (new Set(ids).size !== ids.length) {
+    res.status(400).json({ error: "Each puller may appear only once in an import." });
+    return;
+  }
+  if (items.some((item) =>
+    !Object.keys(item.specifications ?? {}).length &&
+    !item.media?.drawing2dUrl &&
+    !item.media?.drawing3dUrl
+  )) {
+    res.status(400).json({ error: "Each import row must contain a specification value or a media file." });
+    return;
+  }
+
+  const allowedExtensions = {
+    drawing2d: new Set([".png", ".jpg", ".jpeg", ".webp", ".pdf"]),
+    drawing3d: new Set([".glb", ".stl"]),
+  };
+  for (const item of items) {
+    const media = item.media;
+    if (!media) continue;
+    for (const kind of ["drawing2d", "drawing3d"] as const) {
+      const url = media[`${kind}Url`];
+      const name = media[`${kind}Name`];
+      if ((url && !name) || (!url && name)) {
+        res.status(400).json({ error: `Both the ${kind} file path and file name are required.` });
+        return;
+      }
+      if (url && (!url.startsWith("/objects/") || !allowedExtensions[kind].has(path.extname(name!).toLowerCase()))) {
+        res.status(400).json({ error: `Unsupported ${kind} media reference.` });
+        return;
+      }
+    }
+  }
+
+  try {
+    const importedCount = await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(pullersTable)
+        .where(inArray(pullersTable.id, ids))
+        .for("update");
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const conflicts: string[] = [];
+      const updates: { id: number; values: Record<string, unknown> }[] = [];
+
+      for (const item of items) {
+        const current = byId.get(item.pullerId);
+        if (!current) {
+          conflicts.push(`Puller record ${item.pullerId} no longer exists.`);
+          continue;
+        }
+
+        const values: Record<string, unknown> = {};
+        const specifications = item.specifications ?? {};
+        for (const [field, value] of Object.entries(specifications)) {
+          if (value === undefined) continue;
+          const existing = current[field as keyof typeof current];
+          if (existing !== null && existing !== value) {
+            conflicts.push(`${current.uniqueIdentifier}: ${field} already has a different value.`);
+            continue;
+          }
+          if (existing === null) values[field] = value;
+        }
+
+        for (const kind of ["drawing2d", "drawing3d"] as const) {
+          const url = item.media?.[`${kind}Url`];
+          const name = item.media?.[`${kind}Name`];
+          if (!url || !name) continue;
+          const existingUrl = current[`${kind}Url`];
+          const existingName = current[`${kind}Name`];
+          if (existingUrl || existingName) {
+            conflicts.push(`${current.uniqueIdentifier}: ${kind === "drawing2d" ? "2D drawing" : "3D model"} already exists.`);
+            continue;
+          }
+          values[`${kind}Url`] = url;
+          values[`${kind}Name`] = name;
+        }
+        if (Object.keys(values).length) updates.push({ id: item.pullerId, values });
+      }
+
+      if (conflicts.length) {
+        throw new Error(`IMPORT_CONFLICT:${conflicts.join(" ")}`);
+      }
+
+      for (const update of updates) {
+        await tx
+          .update(pullersTable)
+          .set({ ...update.values, updatedAt: new Date() } as Partial<typeof pullersTable.$inferInsert>)
+          .where(eq(pullersTable.id, update.id));
+      }
+      return items.length;
+    });
+
+    res.json(BulkImportPullersResponse.parse({ importedCount }));
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("IMPORT_CONFLICT:")) {
+      res.status(409).json({ error: error.message.slice("IMPORT_CONFLICT:".length) });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/pullers/:pullerId", async (req, res): Promise<void> => {

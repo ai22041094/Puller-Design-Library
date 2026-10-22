@@ -421,6 +421,9 @@ importers:
       '@workspace/replit-auth-web':
         specifier: workspace:*
         version: link:../../lib/replit-auth-web
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       three:
         specifier: ^0.186.1
         version: 0.186.1

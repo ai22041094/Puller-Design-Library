@@ -238,6 +238,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /pullers/bulk-import:
+    post:
+      operationId: bulkImportPullers
+      tags: [pullers]
+      summary: Import specifications and private media for existing pullers
+      description: Applies only new or identical specification values and rejects conflicting populated fields or media.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PullerBulkImportInput"
+      responses:
+        "200":
+          description: Puller records imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullerBulkImportResult"
+        "400":
+          description: Invalid puller import payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: One or more pullers have conflicting populated specifications or media.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /pullers/{pullerId}:
     get:
       operationId: getPuller
@@ -819,6 +850,76 @@ components:
         drawing2dName: { type: ["string", "null"] }
         drawing3dUrl: { type: ["string", "null"] }
         drawing3dName: { type: ["string", "null"] }
+    PullerBulkImportInput:
+      type: object
+      required: [items]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/PullerBulkImportItem"
+    PullerBulkImportItem:
+      type: object
+      required: [pullerId]
+      additionalProperties: false
+      properties:
+        pullerId: { type: integer, minimum: 1 }
+        specifications:
+          $ref: "#/components/schemas/PullerSpecificationImport"
+        media:
+          $ref: "#/components/schemas/PullerMediaImport"
+    PullerSpecificationImport:
+      type: object
+      additionalProperties: false
+      properties:
+        waveCode: { type: string }
+        developmentNumber: { type: string }
+        mouldOrderNumber: { type: string }
+        size: { type: string }
+        compatibilityType: { type: string }
+        material: { type: string }
+        assemblyType: { type: string }
+        logoMark: { type: string }
+        color: { type: string }
+        finish: { type: string }
+        specialProcess: { type: string }
+        torqueCpsc: { type: string }
+        pcsPerShot: { type: string }
+        inHouseOutsource: { type: string }
+        capacity: { type: string }
+        cost: { type: string }
+        needleDetector: { type: string }
+        buyerName: { type: string }
+        depotCode: { type: string }
+        requestedBy: { type: string }
+        marketType: { type: string }
+        requirementName: { type: string }
+        requirementNumber: { type: string }
+        remarks: { type: string }
+        dimensionUnit: { type: string, enum: [mm, cm, in] }
+        overallLength: { type: number, minimum: 0 }
+        overallWidth: { type: number, minimum: 0 }
+        overallHeight: { type: number, minimum: 0 }
+        thickness: { type: number, minimum: 0 }
+        holeDiameter: { type: number, minimum: 0 }
+        holeSpacing: { type: number, minimum: 0 }
+        weight: { type: number, minimum: 0 }
+    PullerMediaImport:
+      type: object
+      additionalProperties: false
+      properties:
+        drawing2dUrl: { type: string, minLength: 1 }
+        drawing2dName: { type: string, minLength: 1 }
+        drawing3dUrl: { type: string, minLength: 1 }
+        drawing3dName: { type: string, minLength: 1 }
+    PullerBulkImportResult:
+      type: object
+      required: [importedCount]
+      properties:
+        importedCount: { type: integer }
     PullerUpdate:
       allOf:
         - $ref: "#/components/schemas/PullerInput"

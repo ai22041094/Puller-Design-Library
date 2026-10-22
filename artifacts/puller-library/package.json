@@ -78,6 +78,7 @@
   "dependencies": {
     "@workspace/object-storage-web": "workspace:*",
     "@workspace/replit-auth-web": "workspace:*",
+    "fflate": "^0.8.3",
     "three": "^0.186.1"
   }
 }
