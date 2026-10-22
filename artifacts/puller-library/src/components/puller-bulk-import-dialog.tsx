@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileUp, LoaderCircle, UploadCloud, X } from 'lucide-react';
+import { Download, FileUp, LoaderCircle, UploadCloud, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetDashboardQueryKey,
@@ -13,6 +13,7 @@ import { useUpload } from '@workspace/object-storage-web';
 import { Unzip, UnzipInflate, UnzipPassThrough } from 'fflate';
 
 const MAX_CSV_BYTES = 2 * 1024 * 1024;
+const MAX_CORRECTION_CSV_BYTES = 4 * 1024 * 1024;
 const MAX_ZIP_BYTES = 100 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 500 * 1024 * 1024;
@@ -43,6 +44,9 @@ type CsvRecord = {
   line: number;
   uniqueIdentifier: string;
   specifications: PullerSpecificationImport;
+  sourceHeaders: string[];
+  sourceValues: string[];
+  errors: string[];
 };
 type ImportPreviewRow = {
   record: CsvRecord;
@@ -99,7 +103,10 @@ function readCsv(text: string) {
     return { records: [] as CsvRecord[], errors: ['The CSV must include a header row and at least one puller row.'] };
   }
 
-  const mappedHeaders = rows[0].map((header) => headerAliases.get(normalizeHeader(header)));
+  const mappedHeaders = rows[0].map((header) => {
+    const normalized = normalizeHeader(header);
+    return normalized === 'validationerrors' ? 'validationErrors' : headerAliases.get(normalized);
+  });
   if (!mappedHeaders.includes('uniqueIdentifier')) {
     errors.push('The CSV needs a uniqueIdentifier column (identifier is also accepted).');
   }
@@ -115,46 +122,46 @@ function readCsv(text: string) {
   const seenIdentifiers = new Set<string>();
   rows.slice(1).forEach((values, index) => {
     const line = index + 2;
+    const rowErrors: string[] = [];
+    const sourceValues = [...values];
     if (values.length !== mappedHeaders.length) {
-      errors.push(`CSV row ${line} has ${values.length} values; expected ${mappedHeaders.length}.`);
-      return;
+      rowErrors.push(`CSV row ${line} has ${values.length} values; expected ${mappedHeaders.length}.`);
     }
-    const rowValues = new Map(mappedHeaders.map((header, column) => [header!, values[column].trim()]));
+    const rowValues = new Map(mappedHeaders.map((header, column) => [header!, values[column]?.trim() ?? '']));
     const uniqueIdentifier = rowValues.get('uniqueIdentifier') ?? '';
     if (!uniqueIdentifier) {
-      errors.push(`CSV row ${line} is missing its puller identifier.`);
-      return;
+      rowErrors.push(`CSV row ${line} is missing its puller identifier.`);
     }
     const identifierKey = uniqueIdentifier.toLocaleLowerCase();
-    if (seenIdentifiers.has(identifierKey)) {
-      errors.push(`CSV row ${line} repeats puller identifier "${uniqueIdentifier}".`);
-      return;
+    if (uniqueIdentifier && seenIdentifiers.has(identifierKey)) {
+      rowErrors.push(`CSV row ${line} repeats puller identifier "${uniqueIdentifier}".`);
+    } else if (uniqueIdentifier) {
+      seenIdentifiers.add(identifierKey);
     }
-    seenIdentifiers.add(identifierKey);
 
     const specifications: PullerSpecificationImport = {};
     for (const [header, rawValue] of rowValues) {
-      if (header === 'uniqueIdentifier' || !rawValue) continue;
+      if (header === 'uniqueIdentifier' || header === 'validationErrors' || !rawValue) continue;
       if (numberFields.includes(header as typeof numberFields[number])) {
         const number = Number(rawValue);
         if (!Number.isFinite(number) || number < 0) {
-          errors.push(`CSV row ${line}: ${header} must be a non-negative number.`);
+          rowErrors.push(`CSV row ${line}: ${header} must be a non-negative number.`);
           continue;
         }
         (specifications as Record<string, unknown>)[header] = number;
       } else if (header === 'dimensionUnit') {
         if (!['mm', 'cm', 'in'].includes(rawValue)) {
-          errors.push(`CSV row ${line}: dimensionUnit must be mm, cm, or in.`);
+          rowErrors.push(`CSV row ${line}: dimensionUnit must be mm, cm, or in.`);
           continue;
         }
         specifications.dimensionUnit = rawValue as PullerSpecificationImport['dimensionUnit'];
       } else if (textFields.includes(header as typeof textFields[number])) {
         (specifications as Record<string, unknown>)[header] = rawValue;
       } else if (!fieldNames.has(header)) {
-        errors.push(`CSV row ${line}: unsupported configuration "${header}".`);
+        rowErrors.push(`CSV row ${line}: unsupported configuration "${header}".`);
       }
     }
-    records.push({ line, uniqueIdentifier, specifications });
+    records.push({ line, uniqueIdentifier, specifications, sourceHeaders: [...rows[0]], sourceValues, errors: rowErrors });
   });
   if (records.length > 500) errors.push('The CSV can contain at most 500 pullers per import.');
   return { records, errors };
@@ -265,6 +272,42 @@ function templateDownload() {
   URL.revokeObjectURL(url);
 }
 
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function rejectedRowsDownload(rows: ImportPreviewRow[]) {
+  const rejected = rows.filter((row) => row.errors.length > 0);
+  if (!rejected.length) return;
+
+  const headers = [
+    ...new Set(rejected.flatMap((row) => row.record.sourceHeaders)
+      .filter((header) => normalizeHeader(header) !== 'validationerrors')),
+    'validationErrors',
+  ];
+  const content = [
+    headers.map(csvCell).join(','),
+    ...rejected.map((row) => {
+      const values = new Map(row.record.sourceHeaders.flatMap((header, index) =>
+        normalizeHeader(header) === 'validationerrors'
+          ? []
+          : [[header, row.record.sourceValues[index] ?? ''] as const],
+      ));
+      return [
+        ...headers.map((header) => normalizeHeader(header) === 'validationerrors'
+          ? row.errors.join(' ')
+          : values.get(header) ?? ''),
+      ].map(csvCell).join(',');
+    }),
+  ].join('\r\n');
+  const url = URL.createObjectURL(new Blob([`\uFEFF${content}\r\n`], { type: 'text/csv;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'puller-import-rejected-rows.csv';
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function errorMessage(error: unknown) {
   const serverMessage = (error as { data?: { error?: string } })?.data?.error;
   return serverMessage || (error instanceof Error ? error.message : 'Import could not be completed. Please try again.');
@@ -278,6 +321,7 @@ export function PullerBulkImportDialog({
   onImported: (count: number) => void;
 }) {
   const [csvFile, setCsvFile] = useState<File>();
+  const [correctionCsvFile, setCorrectionCsvFile] = useState<File>();
   const [zipFile, setZipFile] = useState<File>();
   const [rows, setRows] = useState<ImportPreviewRow[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -330,12 +374,16 @@ export function PullerBulkImportDialog({
       setErrors([]);
       try {
         if (csvFile.size > MAX_CSV_BYTES) throw new Error('The CSV must be 2 MB or smaller.');
+        if (correctionCsvFile && correctionCsvFile.size > MAX_CORRECTION_CSV_BYTES) {
+          throw new Error('The corrected rows CSV must be 4 MB or smaller.');
+        }
         const parsed = readCsv(await csvFile.text());
-        const nextErrors = [...parsed.errors];
+        const correctionParsed = correctionCsvFile ? readCsv(await correctionCsvFile.text()) : undefined;
+        const nextErrors = [...parsed.errors, ...(correctionParsed?.errors ?? [])];
         const byIdentifier = new Map(catalogue.map((puller) => [puller.uniqueIdentifier.toLocaleLowerCase(), puller]));
-        const previewRows = parsed.records.map((record): ImportPreviewRow => {
+        const toPreviewRow = (record: CsvRecord): ImportPreviewRow => {
           const puller = byIdentifier.get(record.uniqueIdentifier.toLocaleLowerCase());
-          const rowErrors: string[] = [];
+          const rowErrors = [...record.errors];
           if (!puller) rowErrors.push(`No existing puller has identifier "${record.uniqueIdentifier}".`);
           else {
             for (const [field, value] of Object.entries(record.specifications)) {
@@ -346,7 +394,21 @@ export function PullerBulkImportDialog({
             }
           }
           return { record, puller, media: {}, errors: rowErrors };
-        });
+        };
+        const originalRows = parsed.records.map(toPreviewRow);
+        const keptOriginalRows = correctionCsvFile
+          ? originalRows.filter((row) => row.errors.length === 0)
+          : originalRows;
+        const correctionRows = correctionParsed?.records.map(toPreviewRow) ?? [];
+        if (correctionCsvFile) {
+          const keptPullerIds = new Set(keptOriginalRows.map((row) => row.puller?.id).filter((id): id is number => id !== undefined));
+          for (const row of correctionRows) {
+            if (row.puller && keptPullerIds.has(row.puller.id)) {
+              row.errors.push('This puller is already included as a valid row from the original CSV.');
+            }
+          }
+        }
+        const previewRows = [...keptOriginalRows, ...correctionRows];
 
         if (zipFile) {
           const extracted = await extractZip(zipFile);
@@ -396,7 +458,7 @@ export function PullerBulkImportDialog({
     }
     void buildPreview();
     return () => { cancelled = true; };
-  }, [csvFile, zipFile, catalogue, catalogueError, catalogueLoading]);
+  }, [csvFile, correctionCsvFile, zipFile, catalogue, catalogueError, catalogueLoading]);
 
   const errorCount = errors.length + rows.reduce((count, row) => count + row.errors.length, 0);
   const validRows = useMemo(() => rows.filter((row) => row.errors.length === 0), [rows]);
@@ -458,8 +520,13 @@ export function PullerBulkImportDialog({
         <div className="bulk-file-grid">
           <div className="form-field">
             <label htmlFor="bulk-csv">Puller specifications (CSV) *</label>
-            <input ref={csvInput} id="bulk-csv" type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { setCsvFile(event.currentTarget.files?.[0]); event.currentTarget.value = ''; }} />
+            <input ref={csvInput} id="bulk-csv" type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { setCsvFile(event.currentTarget.files?.[0]); setCorrectionCsvFile(undefined); event.currentTarget.value = ''; }} />
           </div>
+          {!!rows.some((row) => row.errors.length > 0) || correctionCsvFile ? <div className="form-field">
+            <label htmlFor="bulk-correction-csv">Corrected rejected rows (CSV, optional)</label>
+            <input id="bulk-correction-csv" type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { setCorrectionCsvFile(event.currentTarget.files?.[0]); event.currentTarget.value = ''; }} />
+            {correctionCsvFile && <small>Valid rows from the original CSV will be kept; rejected rows will be replaced with rows from {correctionCsvFile.name}.</small>}
+          </div> : null}
           <div className="form-field">
             <label htmlFor="bulk-zip">Drawings and models (ZIP, optional)</label>
             <input ref={zipInput} id="bulk-zip" type="file" accept=".zip,application/zip" disabled={busy} onChange={(event) => { setZipFile(event.currentTarget.files?.[0]); event.currentTarget.value = ''; }} />
@@ -470,6 +537,7 @@ export function PullerBulkImportDialog({
         {(errors.length > 0 || rows.some((row) => row.errors.length > 0)) && <div className="bulk-errors" role="alert">
           <strong>{errorCount} issue{errorCount === 1 ? '' : 's'} need attention before import</strong>
           {errors.map((error, index) => <div key={`file-${index}`}>{error}</div>)}
+          {rows.some((row) => row.errors.length > 0) && <button type="button" className="btn small" onClick={() => rejectedRowsDownload(rows)}><Download />Download rejected rows</button>}
         </div>}
         {!!rows.length && <div className="bulk-preview">
           <div className="bulk-preview-head"><strong>Import preview</strong><span>{validRows.length} of {rows.length} rows ready · {mediaCount} media file{mediaCount === 1 ? '' : 's'}</span></div>
