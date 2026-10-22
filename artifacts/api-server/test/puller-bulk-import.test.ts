@@ -197,6 +197,67 @@ test("bulk puller imports commit valid data and reject invalid batches atomicall
     );
 
     await t.test(
+      "serializes concurrent conflicting imports and rolls back the rejected batch",
+      async () => {
+        await withPullers(3, async ([shared, firstBatchOnly, secondBatchOnly]) => {
+          const [firstResponse, secondResponse] = await Promise.all([
+            submit([
+              {
+                pullerId: shared.id,
+                specifications: { waveCode: "CONCURRENT-WAVE-A" },
+              },
+              {
+                pullerId: firstBatchOnly.id,
+                specifications: { size: "Batch A size" },
+              },
+            ]),
+            submit([
+              {
+                pullerId: shared.id,
+                specifications: { waveCode: "CONCURRENT-WAVE-B" },
+              },
+              {
+                pullerId: secondBatchOnly.id,
+                specifications: { size: "Batch B size" },
+              },
+            ]),
+          ]);
+
+          const successfulResponses = [firstResponse, secondResponse].filter(
+            (response) => response.status === 200,
+          );
+          const rejectedResponses = [firstResponse, secondResponse].filter(
+            (response) => response.status === 409,
+          );
+          assert.equal(successfulResponses.length, 1);
+          assert.equal(rejectedResponses.length, 1);
+
+          const [firstRows, secondRows] = await Promise.all([
+            readPullers([shared.id, firstBatchOnly.id]),
+            readPullers([shared.id, secondBatchOnly.id]),
+          ]);
+          const acceptedWaveCode = firstResponse.status === 200
+            ? "CONCURRENT-WAVE-A"
+            : "CONCURRENT-WAVE-B";
+          assert.equal(firstRows.get(shared.id)?.waveCode, acceptedWaveCode);
+          assert.equal(secondRows.get(shared.id)?.waveCode, acceptedWaveCode);
+
+          const firstBatchAccepted = firstResponse.status === 200;
+          assert.equal(
+            firstRows.get(firstBatchOnly.id)?.size,
+            firstBatchAccepted ? "Batch A size" : null,
+          );
+          assert.equal(
+            secondRows.get(secondBatchOnly.id)?.size,
+            firstBatchAccepted ? null : "Batch B size",
+          );
+          assert.deepEqual(await successfulResponses[0].json(), { importedCount: 2 });
+          assert.match((await rejectedResponses[0].json()).error, /waveCode already has a different value/);
+        });
+      },
+    );
+
+    await t.test(
       "rejects an occupied media slot without partially updating the batch",
       async () => {
       await withPullers(
